@@ -21,10 +21,14 @@ class data_store:
 
 ## abstract
 class data_table(data_store):
-	def __init__(self,path):
-		self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0)
+	def __init__(self,path="",df=pd.DataFrame()):
+		if path is "":
+			self.table=df
+		else:
+			self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0)
 		pass
-
+	def df(self):
+		return self.table
 	def get_attr_count(self):
 		pass#return self.table.`
 
