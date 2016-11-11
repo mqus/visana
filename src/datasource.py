@@ -22,10 +22,19 @@ class data_source:
 		pass
 
 	def select(self,out_table,attr_name,a,b,in_table="base"):
-		pass
+		df = self.table_store[in_table]
+
+		df = df.loc[df[attr_name] > a]
+		df = df.loc[df[attr_name] < b]
+
+		self.table_store[out_table] = df
 
 	def project(self,out_table,attr1,attr2,in_table="base"):
-		pass
+		df = self.table_store[in_table]
+
+		df = df[[attr1, attr2]]
+
+		self.table_store[out_table] = df
 
 	def aggregate(self,out_table,mode,attr_names,limit=0,in_table="base"):
 		pass
