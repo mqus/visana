@@ -41,10 +41,12 @@ class data_source:
 	def aggregate(self,out_table,mode,attr_names,limit=0,in_table="base"):
 		df = self.table_store[in_table].df() #type:pd.DataFrame
 		#new_df = pd.DataFrame(columns=attr_names)
+		#only view selected columns
 		df = df[attr_names]
 		data=dict()
 		if limit is 0:
 			limit=len(df.index)
+		#iterate over columns
 		for attr,values in df.iteritems():
 			data[attr]=list()
 			i=0
