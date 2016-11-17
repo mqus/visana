@@ -1,9 +1,9 @@
 import pandas as pd
 
-from table import data_table
+from table import DataTable
 
 
-class data_source:
+class DataSource:
 
 	def __init__(self):
 		self.table_store=dict()
@@ -11,8 +11,11 @@ class data_source:
 	def get_table_count(self):
 		return len(self.table_store)
 
+	def get_table(self,table):
+		return self.table_store[table]
+
 	def get_base_data(self):
-		return self.table_store["base"]
+		return self.table_store["base"] #type:DataTable
 		pass
 
 	def get_table_store(self):
@@ -20,7 +23,7 @@ class data_source:
 
 
 	def read_data(self,path):
-		self.table_store["base"]=data_table(path)
+		self.table_store["base"]=DataTable(path)
 		pass
 
 	def select(self,out_table,attr_name,a,b,in_table="base"):
@@ -29,14 +32,14 @@ class data_source:
 		df = df.loc[df[attr_name] >= a]
 		df = df.loc[df[attr_name] <= b]
 
-		self.table_store[out_table] = data_table(df=df)
+		self.table_store[out_table] = DataTable(df=df)
 
 	def project(self,out_table,attr1,attr2,in_table="base"):
 		df = self.table_store[in_table].df()
 
 		df = df[[attr1, attr2]]
 
-		self.table_store[out_table] = data_table(df=df)
+		self.table_store[out_table] = DataTable(df=df)
 
 	def aggregate(self,out_table,mode,attr_names,limit=0,in_table="base"):
 		df = self.table_store[in_table].df() #type:pd.DataFrame
@@ -75,7 +78,7 @@ class data_source:
 						insval=min
 					data[attr].append(insval)
 					#new_df.insert(int(i / limit), attr, insval)
-		self.table_store[out_table]=data_table(df=pd.DataFrame(data))
+		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 
 
 

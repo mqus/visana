@@ -1,6 +1,6 @@
 import datasource
 
-ds=datasource.data_source()
+ds=datasource.DataSource()
 ds.read_data("../../dust-2014.dat")
 ds.select("selection","Small",3680,3680)
 #ds.project("proj","Large","OutdoorTemp",in_table="selection")

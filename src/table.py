@@ -1,7 +1,7 @@
 import pandas as pd
 
 ##  abstract
-class data_iter:
+class DataIter:
 	def next(self):
 		pass
 
@@ -12,7 +12,7 @@ class data_iter:
 		pass
 
 ## abstract
-class data_store:
+class DataStore:
 	def get_count(self):
 		pass
 
@@ -20,12 +20,12 @@ class data_store:
 		pass
 
 ## abstract
-class data_table(data_store):
+class DataTable(DataStore):
 	def __init__(self,path="",df=pd.DataFrame()):
 		if path is "":
-			self.table=df
+			self.table=df #type:pd.DataFrame
 		else:
-			self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0)
+			self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0) #type:pd.DataFrame
 		pass
 	def df(self):
 		return self.table
@@ -34,3 +34,6 @@ class data_table(data_store):
 
 	def get_attr_names(self):
 		pass
+
+	def get_count(self):
+		return len(self.table)
