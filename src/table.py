@@ -26,14 +26,15 @@ class DataTable(DataStore):
 			self.table=df #type:pd.DataFrame
 		else:
 			self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0) #type:pd.DataFrame
-		pass
+		
 	def df(self):
 		return self.table
+
 	def get_attr_count(self):
-		pass#return self.table.`
+		return len(self.table.columns.values)
 
 	def get_attr_names(self):
-		pass
+		return self.table.columns.values
 
 	def get_count(self):
 		return len(self.table)
