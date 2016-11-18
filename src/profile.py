@@ -11,13 +11,14 @@ start=time.perf_counter()
 ds.read_data(sys.argv[1])
 stop=time.perf_counter()
 size=ds.get_base_data().get_count()
-print("read: " + str((stop-start)*1000) + "ms \tper 1k entries: " + str((stop-start)*1000*1000/size) + "ms.")
+print("read: " + str((stop-start)*1000) + "ms \tper 1k entries: " + str((stop-start)*1000*1000/size) + "ms. "
+                "(size:" + str(ds.get_base_data().get_count()) + ")")
 
 start=time.perf_counter()
 ds.select("selection","natural1",500,1000)
 stop=time.perf_counter()
 print("sel : " + str((stop-start)*1000) + "ms \tper 1k entries: " + str((stop-start)*1000*1000/size) + "ms. "
-                "(size:" + str(ds.get_table("selection").get_count()) + ")")
+                "(size:" + str(ds.get_data("selection").get_count()) + ")")
 
 start=time.perf_counter()
 ds.project("proj","float1","integer1")

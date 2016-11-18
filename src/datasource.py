@@ -11,7 +11,7 @@ class DataSource:
 	def get_table_count(self):
 		return len(self.table_store)
 
-	def get_table(self,table):
+	def get_data(self,table):
 		return self.table_store[table]
 
 	def get_base_data(self):

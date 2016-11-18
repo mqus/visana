@@ -11,14 +11,14 @@ cat ../data/sample_1m.csv | sed "2,900002d" >../data/sample_100k.csv
 echo "create 10K samples in data/sample_10k.csv"
 cat ../data/sample_100k.csv | sed "2,90002d" >../data/sample_10k.csv
 echo "Profile program with 100M Samples: Reading Input..."
-python3 benchmark.py ../data/sample_100m.csv
+python3 profile.py ../data/sample_100m.csv
 echo "Profile program with 10M Samples: Reading Input..."
-python3 benchmark.py ../data/sample_10m.csv
+python3 profile.py ../data/sample_10m.csv
 echo "Profile program with 1M Samples: Reading Input..."
-python3 benchmark.py ../data/sample_1m.csv
+python3 profile.py ../data/sample_1m.csv
 echo "Profile program with 100k Samples: Reading Input..."
-python3 benchmark.py ../data/sample_100k.csv
+python3 profile.py ../data/sample_100k.csv
 echo "Profile program with 10k Samples: Reading Input..."
-python3 benchmark.py ../data/sample_10k.csv
-echo "Delete temporary files with 'rm data/sample*' by yourself, they are retained for inspection."
+python3 profile.py ../data/sample_10k.csv
+echo "Done. Delete temporary files with 'rm data/sample*' by yourself, they are retained for inspection."
 popd
