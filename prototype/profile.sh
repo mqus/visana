@@ -10,6 +10,7 @@ echo "create 100K samples in data/sample_100k.csv"
 cat ../data/sample_1m.csv | sed "2,900002d" >../data/sample_100k.csv
 echo "create 10K samples in data/sample_10k.csv"
 cat ../data/sample_100k.csv | sed "2,90002d" >../data/sample_10k.csv
+
 echo "Profile program with 100M Samples: Reading Input..."
 python3 profile.py ../data/sample_100m.csv
 echo "Profile program with 10M Samples: Reading Input..."

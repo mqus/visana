@@ -125,7 +125,7 @@ output = [sys.argv[1].split(".")[0]]
 print(runtimes.keys())
 for k in sorted(runtimes.keys()):
 	avg = sum(runtimes[k])/len(runtimes[k])
-	print(k+": "+str(avg))
+	print(k+":\t"+str(avg))
 	output.append(str(avg))
 
 print("\t".join(output))
