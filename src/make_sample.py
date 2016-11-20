@@ -2,11 +2,14 @@ import random
 import numpy.random as rdm
 import sys
 
+## small script to produce a file with sample data
+
 #print header of the file
 print("id;natural1;natural2;float1;integer1")
 
 #set row-count
 size = 1000*1000*10
+## ... or read as argument
 if len(sys.argv)>1:
     size=int(sys.argv[1])
 
@@ -18,6 +21,7 @@ int1=list()
 float1=list()
 
 for i in range(0,size):
+	## for each sample row, produce random numbers:
     if i%CHUNK_SIZE == 0:
         nat1 = rdm.random_integers(0, 1000, size)
         nat2 = rdm.random_integers(0,10*1000*1000,CHUNK_SIZE)

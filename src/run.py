@@ -1,5 +1,6 @@
 import datasource
 
+## test script
 ds=datasource.DataSource()
 ds.read_data("../../dust-2014.dat")
 ds.select("selection","Small",3680,3680)

@@ -6,14 +6,15 @@ if len(sys.argv) is not 2:
     print("profile needs an input file as argument")
 
 
-## seed for comparable runs
+## set seed for comparable runs
 random.seed(0)
+## how many runs ?
 runCnt = 10
 
 
 ## create random conditions for the SELECT-function
 ## return one attribute with random min-max values
-## 	(condCnt random entries)
+## 	(condCnt: number of random conditions in result)
 def createSelectConds(attributes, ranges, condCnt):
 	selectConds = []
 	for i in range(0, condCnt):
@@ -30,7 +31,7 @@ def createSelectConds(attributes, ranges, condCnt):
 
 ## create random conditions for the AGGREGATE-function
 ## returns random subset of attributes, random function and random RANGE value
-## 	(condCnt random entries)
+## 	(condCnt: number of random conditions in result)
 def createAggrConds(attributes, ranges, condCnt):
 	aggrConds = []
 	for i in range(0, condCnt):
@@ -54,6 +55,8 @@ def createAggrConds(attributes, ranges, condCnt):
 	return aggrConds
 
 ## attribute definitions with ranges
+## [this are the same values as used in make_sample.py,
+## combining both to one definition would be better]
 attributes = ["natural1", "natural2", "float1", "integer1"]
 ranges = {}
 ranges["natural1"] = [0, 1000]
@@ -61,6 +64,7 @@ ranges["natural2"] = [0, 10000000]
 ranges["float1"] = [-10, 30]
 ranges["integer1"] = [-1000, 1000]
 
+## create random conditions
 selectConds = createSelectConds(attributes, ranges, runCnt)
 aggrConds = createAggrConds(attributes, ranges, runCnt)
 
@@ -121,8 +125,9 @@ for i in range(0, runCnt):
 	runtimes["AGGREGATE"].append((stop-start))
 	#print("aggr: " + str((stop-start)*1000) + "ms \tper 1k entries: " + str((stop-start)*1000*1000/size) + "ms.")
 
-output = [sys.argv[1].split(".")[0]]
-print(runtimes.keys())
+## create proper output
+output = [sys.argv[1].split(".")[0]] ## file name
+## calculate average run time for each function
 for k in sorted(runtimes.keys()):
 	avg = sum(runtimes[k])/len(runtimes[k])
 	print(k+":\t"+str(avg))
