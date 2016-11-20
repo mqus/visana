@@ -1,0 +1,1 @@
+Wir haben uns beim Datentyp für eine Relation entscheiden(siehe Meilenstein1) und haben das in einer In-Memory-Lösung

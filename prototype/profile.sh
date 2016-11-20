@@ -12,7 +12,7 @@ if [ $1 == "big" ];then
 	If you just want to run the small version (up to 50mb of Disk Space), run 'prototype/profile.sh small'."
 
 	echo "create 100M samples in data/sample_100m.csv (may take ~10-15 minutes)"
-	python3 make_sample.py > ../data/sample_100m.csv
+	python3 make_sample.py 100000000 > ../data/sample_100m.csv
 	echo "create 10M samples in data/sample_10m.csv"
 	cat ../data/sample_100m.csv | sed "2,90000002d" >../data/sample_10m.csv
 fi
