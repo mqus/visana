@@ -7,7 +7,7 @@ if [ -z $1 ];then
 fi
 
 pushd src >/dev/null
-if [ $1 -eq "big" ];then
+if [ $1 == "big" ];then
 	echo "	WARNING: This profiler will temporarily take up 5GB of Disk space in data/ .
 	If you just want to run the small version (up to 50mb of Disk Space), run 'prototype/profile.sh small'."
 
@@ -24,10 +24,12 @@ cat ../data/sample_1m.csv | sed "2,900002d" >../data/sample_100k.csv
 echo "create 10K samples in data/sample_10k.csv"
 cat ../data/sample_100k.csv | sed "2,90002d" >../data/sample_10k.csv
 
-echo "Profile program with 100M Samples: Reading Input..."
-python3 profile.py ../data/sample_100m.csv
-echo "Profile program with 10M Samples: Reading Input..."
-python3 profile.py ../data/sample_10m.csv
+if [ $1 == "big" ];then
+	echo "Profile program with 100M Samples: Reading Input..."
+	python3 profile.py ../data/sample_100m.csv
+	echo "Profile program with 10M Samples: Reading Input..."
+	python3 profile.py ../data/sample_10m.csv
+fi
 echo "Profile program with 1M Samples: Reading Input..."
 python3 profile.py ../data/sample_1m.csv
 echo "Profile program with 100k Samples: Reading Input..."
