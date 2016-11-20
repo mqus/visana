@@ -131,10 +131,10 @@ output = [sys.argv[1].split(".")[0]] ## file name
 ## calculate average run time for each function
 for k in sorted(runtimes.keys()):
 	avg = sum(runtimes[k])/len(runtimes[k])
-	output.append(k+":"+str(avg)+"s")
+	output.append(k+":%.6fs"%avg)
 ##calculate average runtime for 1000 rows in milliseconds
 for k in sorted(runtimes.keys()):
 	avg = sum(runtimes[k])/len(runtimes[k])/size*1000*1000
-	output.append(k+" per 1k:"+str(avg)+"ms")
+	output.append(k+" per 1k:%.6fs"%avg)
 
 print("\t".join(output))
