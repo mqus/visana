@@ -1,8 +1,7 @@
 #Status:
 - Das Einlesen der Daten funktioniert
 - auch die Funktionen project, select und aggregate sind fertig
-
-
+- profile.sh funktioniert.
 
 #TODO:
 
