@@ -10,7 +10,8 @@ if len(sys.argv) is not 2:
 random.seed(0)
 ## how many runs ?
 runCnt = 10
-
+##number of input-data rows(will be filled in later)
+size=0
 
 ## create random conditions for the SELECT-function
 ## return one attribute with random min-max values
@@ -130,7 +131,10 @@ output = [sys.argv[1].split(".")[0]] ## file name
 ## calculate average run time for each function
 for k in sorted(runtimes.keys()):
 	avg = sum(runtimes[k])/len(runtimes[k])
-	print(k+":\t"+str(avg))
-	output.append(str(avg))
+	output.append(k+":"+str(avg)+"s")
+##calculate average runtime for 1000 rows in milliseconds
+for k in sorted(runtimes.keys()):
+	avg = sum(runtimes[k])/len(runtimes[k])/size*1000*1000
+	output.append(k+" per 1k:"+str(avg)+"ms")
 
 print("\t".join(output))
