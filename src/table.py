@@ -6,7 +6,7 @@ class DataTable:
 		if path is "":
 			self.table=df #type:pd.DataFrame
 		else:
-			self.table=pd.read_csv(path,sep=";",na_values="NA",index_col=0) #type:pd.DataFrame
+			self.table=pd.read_csv(path,sep=";",na_values="NA",parse_dates=["MasterTime"]) #type:pd.DataFrame
 		
 	## return dataframe
 	def df(self):

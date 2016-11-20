@@ -5,7 +5,7 @@ import sys
 ## small script to produce a file with sample data
 
 #print header of the file
-print("id;natural1;natural2;float1;integer1")
+print("MasterTime;natural1;natural2;float1;integer1")
 
 #set row-count
 size = 1000*1000*10
