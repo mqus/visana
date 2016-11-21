@@ -5,6 +5,8 @@
 
 #TODO:
 
+- das löschen von Zwischenergebnissen ermöglichen (evtl automatisch?)
+
 - Visual Interface
 - Unit-Tests
 - clean input-data
