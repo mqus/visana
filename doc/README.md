@@ -12,10 +12,9 @@ gebraucht:
 - python3-pandas
 - (evtl auch pip zum Installieren von pandas)
 
-da es leider nicht trivial ist, Python-Bibliotheken mitzuliefern, 
-ohne zu wissen, in welcher Plattform das Programm laufen muss, 
-können wir nur Bibliotheken für Linux/AMD64 mitliefern. Auf anderen Platformen 
-lassen sich die nötigen Abhängigkeiten mit pip installieren.
+Wir haben es leider nicht geschafft, unsere python-Bibliotheken beizulegen, weil diese wohl erst auf dem Zielgerät 
+kompiliert werden müssen... deshalb ist es wohl am Benutzer, für die Installation dieser Abhängigkeiten zu sorgen.
+Wir werden trotzdem beim nächsten Meilenstein versuchen, etwas mehr Komfort in die Sache zu bekommen.
 
 ## Eigene Leistung
 - Wrapper für pandas
