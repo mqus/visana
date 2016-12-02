@@ -1,5 +1,12 @@
 import tkinter as tk
-#import datasource as ds
+import datasource
+## matplotlibs
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.figure import Figure
+
+
 
 class VisAnaGUI(tk.LabelFrame):
     def __init__(self, master=None, ds=None):
@@ -58,7 +65,31 @@ class VisAnaGUI(tk.LabelFrame):
 
 
 
+    ## update view with specified data
+    def display_data(self, df, attr_name1="Large", attr_name2="Small"):
+        fig = Figure(figsize=(5,5), dpi=100)
+        ax = fig.add_subplot(111)
+        df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True)
+
+        #df.plot(x="MasterTime", y="Large", ax=ax)
+
+        self.canvas = FigureCanvasTkAgg(fig, self)
+        self.canvas.mpl_connect('button_press_event', lambda event: self.canvas._tkcanvas.focus_set())
+        #self.canvas.mpl_connect('pick_event', self.onpick)
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S), columnspan=5)
+
+
+
+
+## read data
+ds = datasource.DataSource()
+ds.read_data("../data/dust-2014.dat")
+
 root = tk.Tk()
 
 app = VisAnaGUI(master=root)
+## display base data at startup
+app.display_data(ds.get_base_data().df())
+
+
 app.mainloop()
