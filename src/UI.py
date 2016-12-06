@@ -40,8 +40,10 @@ class VisAnaGUI(tk.LabelFrame):
         self.hi_there["command"] = self.say_hi
         self.hi_there.grid(column=1, row=0, sticky=(tk.W, tk.N))
 
-        self.filter = tk.Label(self, text="HIER STEHT Dann EIN FILTER!!!", bg="#0066ff")
+        self.filter = tk.LabelFrame(self, bg="#0066ff")
         self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+        self.f1 = tk.Label(self.filter, text="HIER STEHT Dann EIN FILTER!!!")
+        self.f1.pack()
 
 
         self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
