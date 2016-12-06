@@ -13,8 +13,8 @@ class DataSource:
 		return len(self.table_store)
 
 	## return table with the given name
-	def get_data(self,table):
-		return self.table_store[table]
+	def get_data(self, name):
+		return self.table_store[name]
 
 	## return base table with original data
 	def get_base_data(self):
@@ -27,6 +27,9 @@ class DataSource:
 	## construct base table with csv file at given path
 	def read_data(self,path):
 		self.table_store["base"]=DataTable(path)
+
+	def pop_table(self,name):
+		self.table_store.pop(name)
 
 	## perform a selection on data
 	##	out_table: name of new table with results
