@@ -176,7 +176,7 @@ class VisAnaGUI(tk.LabelFrame):
         ax = fig.add_subplot(111)
 
         ax.scatter(days, [1]*len(days), c=values,
-                   marker='|', s=200, fontsize=10)
+                   marker='|', s=200)#, fontsize=10)
         fig.autofmt_xdate()
 
         ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2014,12,31,0,0,0)])
@@ -245,7 +245,7 @@ date_shown = build_contained_dict(df)
 app.display_data(df)
 ## draw timeline
 app.draw_timeline(date_contained, date_shown)
-
+app.add_sliders()
 
 
 app.mainloop()
