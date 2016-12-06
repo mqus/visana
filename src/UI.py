@@ -5,6 +5,11 @@ import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
+import matplotlib.dates as mdates
+from datetime import date, datetime
+import pandas as pd
+from random import random
+from dateutil import rrule
 import matplotlib.pyplot as plt
 
 
@@ -67,9 +72,6 @@ class VisAnaGUI(tk.LabelFrame):
     def add_to_history(self, text):
         self.history.insert('end', text + "\n")
 
-
-
-
     ## update view with specified data
     def display_data(self, df, attr_name1="Large", attr_name2="Small"):
         fig = Figure(figsize=(5,5), dpi=100)
@@ -84,6 +86,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.canvas.mpl_connect('pick_event', self.draw_tooltip)
         #self.canvas.mpl_connect('pick_event', self.onpick)
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+
     def draw_tooltip(self, event):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
@@ -110,6 +113,78 @@ class VisAnaGUI(tk.LabelFrame):
         #points = tuple(zip(xdata[ind], ydata[ind]))
         #print('onpick point:', points)
 
+    def draw_timeline(self, date_contained, shown_dates={}, selected_dates=[]):
+        ## create value for each day in data,
+        ## depending on whether it is selected, shown etc.
+        days = []
+        values = []
+        for day in sorted(date_contained.keys()):
+            if date_contained[day]:
+                days.append(day)
+                ##if random() < 0.01:
+                if shown_dates[day]:
+                    values.append("blue")
+                    ##if day in selected_dates:
+                    if random() < 0.05:
+                        values.append("red")
+                else:
+                    values.append("lightskyblue")
+
+
+        #print(days)
+        #print(values)
+        #print(len(values))
+
+        fig = Figure(figsize=(6,1), dpi=100)
+        ax = fig.add_subplot(111)
+
+        ax.scatter(days, [1]*len(days), c=values,
+                   marker='|', s=200)
+        fig.autofmt_xdate()
+
+        ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2014,12,31,0,0,0)])
+
+        ## everything after this is turning off stuff that's plotted by default
+        ax.yaxis.set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.xaxis.set_ticks_position('bottom')
+        ax.get_yaxis().set_ticklabels([])
+
+        self.timeline = FigureCanvasTkAgg(fig, self)
+        self.timeline.get_tk_widget().grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+
+
+
+
+## select data from datasource in this time range
+def filter_data(ds, start_time, end_time):
+    ds.select(out_table="time_filter", attr_name="MasterTime",
+        a=start_time, b=end_time)
+    return ds.get_data("time_filter").df()
+
+## build a dictionary with 365 days as keys
+## and boolean values for those days that
+## contain non-missing values
+def build_contained_dict(df):
+    #print(df)
+    date_contained = dict()
+    for dt in rrule.rrule(rrule.DAILY,
+        dtstart=datetime(2014,1,1,0,0,0),
+        until=datetime(2014,12,31,23,59,0)):
+        date_contained[dt.date()] = False
+    ## only check for values in 'Small' and 'Large'
+    df = df[["MasterTime", "Small", "Large"]]
+    ## iterate through tuples and check for each day
+    ## if there are non-missing values
+    #print(df)
+    for row in df.itertuples():
+        if not pd.isnull(row.Small) or not pd.isnull(row.Large):
+            day = row.MasterTime.date()
+            date_contained[day] = True
+
+    return date_contained
 
 
 
@@ -121,7 +196,19 @@ root = tk.Tk()
 
 app = VisAnaGUI(master=root)
 ## display base data at startup
-app.display_data(ds.get_base_data().df())
+df = ds.get_base_data().df()
+## which days are in the data?
+date_contained = build_contained_dict(df)
+## example: select only dates in december
+df = filter_data(ds, start_time=datetime(2014,12,1,0,0,0), end_time=datetime(2014,12,31,23,59,0))
+## which days are shown in december?
+date_shown = build_contained_dict(df)
+
+## draw data
+app.display_data(df)
+## draw timeline
+app.draw_timeline(date_contained, date_shown)
+
 
 
 app.mainloop()
