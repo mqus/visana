@@ -4,7 +4,7 @@ import datasource
 
 
 def scatter_with_hover(df, x, y,
-                       fig=None, cols=None, name=None, marker='x',
+                       fig=None, cols=None, name=None, marker='o',
                        fig_width=500, fig_height=500, **kwargs):
     """
     Plots an interactive scatter plot of `x` vs `y` using bokeh, with automatic
@@ -46,7 +46,7 @@ def scatter_with_hover(df, x, y,
     # If we haven't been given a Figure obj then create it with default
     # size etc.
     if fig is None:
-        fig = figure(webgl=True, width=fig_width, height=fig_height, tools=['box_zoom', 'reset'])
+        fig = figure(webgl=True, width=fig_width, height=fig_height, tools="box_select, reset, tap_select" )
 
     # We're getting data from the given dataframe
     source = ColumnDataSource(data=df)
@@ -84,7 +84,9 @@ def scatter_with_hover(df, x, y,
 ## read data
 ds = datasource.DataSource()
 ds.read_data("../data/dust-2014.dat")
+ds.aggregate("output1", "AVG", ["Large","Small"],5)
+ds.select("output","Large", 0, 200000,"output1")
 
-df = ds.get_base_data().df()
-fig = scatter_with_hover(df, "Small", "Large", cols=["Small", "Large"])
+df = ds.get_data("output").df()
+fig = scatter_with_hover(df, "Large", "Small", cols=[ "Large","Small"])
 show(fig)

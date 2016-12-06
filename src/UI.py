@@ -5,6 +5,8 @@ import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
 
 
 
@@ -17,7 +19,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.rowconfigure(3,weight=1)
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
-
+        self.plot_tooltip=None
         self.createWidgets()
         root.title("Visual Analyser - Gui")
 
@@ -47,7 +49,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.projector = tk.Label(self, text="HIER KANN MAN\n EIGENSCHAFTEN\n AUSWAEHLEN\n\n\nbis hier")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
 
-        self.history = tk.Text(self)
+        self.history = tk.Text(self, width=50)
         self.history.grid(column=2, row=3, sticky=(tk.N, tk.E, tk.S))
         for i in range(1,101):
             self.add_to_history('Line %d of 100' % i)
@@ -67,18 +69,46 @@ class VisAnaGUI(tk.LabelFrame):
 
 
 
+
     ## update view with specified data
     def display_data(self, df, attr_name1="Large", attr_name2="Small"):
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
-        df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True)
-
+        #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
+        ax.plot(df[attr_name1], df[attr_name2], marker="o", linewidth=0, picker=True)#, grid=True)
+        ax.grid(True)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
         self.canvas = FigureCanvasTkAgg(fig, self)
         self.canvas.mpl_connect('button_press_event', lambda event: self.canvas._tkcanvas.focus_set())
+        self.canvas.mpl_connect('pick_event', self.draw_tooltip)
         #self.canvas.mpl_connect('pick_event', self.onpick)
-        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S), columnspan=5)
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+    def draw_tooltip(self, event):
+        if self.plot_tooltip is not None:
+            self.canvas.get_tk_widget().delete(self.plot_tooltip)
+            self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
+        print("dasEvent: "+ str(vars(event)))
+        print("ind: "+ str(event.ind))
+        print("artist: "+ str(vars(event.artist)))
+        print("me: "+ str(vars(event.mouseevent)))
+        y=self.canvas.figure.bbox.height-event.mouseevent.y
+        x=event.mouseevent.x
+        text="time:\nsmall\nbig\ntemp\nhumidity"
+        self.plot_tooltip=self.canvas.get_tk_widget().create_text(x+2, y, anchor=tk.NW,
+                                                                  text=text)
+        self.plot_tooltip_rect = self.canvas.get_tk_widget().create_rectangle(
+            self.canvas.get_tk_widget().bbox(self.plot_tooltip), fill="yellow")
+        self.canvas.get_tk_widget().delete(self.plot_tooltip)
+        self.plot_tooltip=self.canvas.get_tk_widget().create_text(x+2, y, anchor=tk.NW,
+                                                                  text=text)
+
+        #mouseev = event.mouseevent
+        #xdata = mouseev.x_data
+        #ydata = mouseev.y_data
+        ##ind = event.ind
+        #points = tuple(zip(xdata[ind], ydata[ind]))
+        #print('onpick point:', points)
 
 
 
@@ -86,7 +116,7 @@ class VisAnaGUI(tk.LabelFrame):
 ## read data
 ds = datasource.DataSource()
 ds.read_data("../data/dust-2014.dat")
-
+print("read")
 root = tk.Tk()
 
 app = VisAnaGUI(master=root)
