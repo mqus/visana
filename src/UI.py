@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import Scale, HORIZONTAL, X
 import datasource
 ## matplotlibs
 import matplotlib
@@ -45,7 +46,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.filter = tk.LabelFrame(self, bg="#0066ff")
         self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
         self.f1 = tk.Label(self.filter, text="HIER STEHT Dann EIN FILTER!!!")
-        self.f1.pack()
+        #self.f1.pack()
 
 
         self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
@@ -72,6 +73,42 @@ class VisAnaGUI(tk.LabelFrame):
     def add_to_history(self, text):
         self.history.insert('end', text + "\n")
 
+    ## triggered by changing startslider value
+    def updateStart(self, event):
+        fromVal = self.startSlider.get()
+        endVal = self.endSlider.get()
+        if endVal < fromVal:
+            self.endSlider.set(self.startSlider.get())
+        self.f1label["text"] = "FROM "+str(self.dates[endVal])
+
+    ## triggered by changing startslider value
+    def updateEnd(self, event):
+        fromVal = self.startSlider.get()
+        endVal = self.endSlider.get()
+        if endVal < fromVal:
+            self.startSlider.set(self.endSlider.get())
+        self.f2label["text"] = "TO "+str(self.dates[endVal])
+
+    ## add sliders to GUI
+    def add_sliders(self):
+        self.dates = []
+        for dt in rrule.rrule(rrule.DAILY,
+            dtstart=datetime(2014,1,1,0,0,0),
+            until=datetime(2014,12,31,23,59,0)):
+            self.dates.append(dt.date())
+
+        self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.updateStart)
+        self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.updateEnd)
+        self.f1 = self.startSlider
+        self.f1.pack(fill=X)
+        self.f1label = tk.Label(self.filter, text="FROM VALUE")
+        self.f1label.pack()
+        self.f2 = self.endSlider
+        self.f2.pack(fill=X)
+        self.f2label = tk.Label(self.filter, text="TO VALUE")
+        self.f2label.pack()
+
+
     ## update view with specified data
     def display_data(self, df, attr_name1="Large", attr_name2="Small"):
         fig = Figure(figsize=(5,5), dpi=100)
@@ -93,7 +130,7 @@ class VisAnaGUI(tk.LabelFrame):
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
         print("dasEvent: "+ str(vars(event)))
         print("ind: "+ str(event.ind))
-        print("artist: "+ str(vars(event.artist)))
+        #print("artist: "+ str(vars(event.artist)))
         print("me: "+ str(vars(event.mouseevent)))
         y=self.canvas.figure.bbox.height-event.mouseevent.y
         x=event.mouseevent.x
@@ -139,7 +176,7 @@ class VisAnaGUI(tk.LabelFrame):
         ax = fig.add_subplot(111)
 
         ax.scatter(days, [1]*len(days), c=values,
-                   marker='|', s=200)
+                   marker='|', s=200, fontsize=10)
         fig.autofmt_xdate()
 
         ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2014,12,31,0,0,0)])
