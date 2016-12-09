@@ -228,7 +228,7 @@ class VisAnaGUI(tk.LabelFrame):
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
-        ax.plot(self.df[attr_name1], self.df[attr_name2], marker="o", linewidth=0, picker=True)#, grid=True)
+        ax.plot(self.df[attr_name1], self.df[attr_name2], marker="o", linewidth=1, picker=self.line_picker)#, grid=True)
         ax.grid(True)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
@@ -239,23 +239,53 @@ class VisAnaGUI(tk.LabelFrame):
         self.canvas_tb=NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
 
+    def line_picker(self, line, mouseevent):
+        """
+        find the points within a certain distance from the mouseclick in
+        data coords and attach some extra attributes, pickx and picky
+        which are the data points that were picked
+        """
+        print("PICKER")
+        print(vars(line))
+        print(vars(mouseevent))
+
+        if mouseevent.xdata is None:
+            return False, dict()
+        xdata = line.get_xdata()
+        ydata = line.get_ydata()
+        maxd = 0.05
+        d = pd.np.sqrt((xdata - mouseevent.xdata)**2. + (ydata - mouseevent.ydata)**2.)
+
+        ind = pd.np.nonzero(pd.np.less_equal(d, maxd))
+        if len(ind):
+            pickx = pd.np.take(xdata, ind)
+            picky = pd.np.take(ydata, ind)
+            props = dict(ind=ind, pickx=pickx, picky=picky)
+            return True, props
+        else:
+            return False, dict()
+
     def draw_tooltip(self, event):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
-        #print("dasEvent: "+ str(vars(event)))
+        print("dasEvent: "+ str(vars(event)))
         print("ind: "+ str(event.ind))
-        #print("artist: "+ str(vars(event.artist)))
+        print("artist: "+ str(vars(event.artist)))
         #print("me: "+ str(vars(event.mouseevent)))
         print(("hi, %d , " % len(event.ind)))
 
         if len(event.ind) is 1:
-            data=self.df[event.ind[0]:event.ind[0]+1]
-            print(data)
 
+            text="Selected Value:"
+            for col,cdata in self.df.iteritems():
+                text = text + "\n" + str(col) + ": \t" + str(cdata[event.ind[0]])
+            print(text)
+        else:
+            text = "time:\nsmall\nbig\ntemp\nhumidity"
         y=self.canvas.figure.bbox.height-event.mouseevent.y
         x=event.mouseevent.x
-        text="time:\nsmall\nbig\ntemp\nhumidity"
+
         self.plot_tooltip=self.canvas.get_tk_widget().create_text(x+2, y, anchor=tk.NW,
                                                                   text=text)
         self.plot_tooltip_rect = self.canvas.get_tk_widget().create_rectangle(
