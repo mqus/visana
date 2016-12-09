@@ -1,18 +1,18 @@
 import tkinter as tk
-from tkinter import Scale, HORIZONTAL, X, Listbox
-import datasource
-## matplotlibs
+from tkinter import Scale, HORIZONTAL, Listbox
+
 import matplotlib
+
+import datasource
+
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
-import matplotlib.dates as mdates
-from datetime import date, datetime
+from datetime import datetime
 import pandas as pd
-from random import random
 from dateutil import rrule
-import matplotlib.pyplot as plt
 from time import time
+import util
 
 
 
@@ -247,7 +247,8 @@ class VisAnaGUI(tk.LabelFrame):
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
         print("param1="+str(self.param1)+" param2="+str(self.param2))
 
-        ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=True)#, grid=True)
+        #ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=self.line_picker)
+        ax.scatter(x=self.df[self.param1], y=self.df[self.param2], marker="o",picker=5)
         ax.grid(True)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
@@ -265,18 +266,31 @@ class VisAnaGUI(tk.LabelFrame):
         which are the data points that were picked
         """
         print("PICKER")
-        print(vars(line))
-        print(vars(mouseevent))
+        #print(line, vars(line))
+        #print(line._transformed_path, vars(line._transformed_path))
+        #print(mouseevent, vars(mouseevent))
+        #print(line.get_ydata(), line.get_xdata())
 
         if mouseevent.xdata is None:
             return False, dict()
-        xdata = line.get_xdata()
-        ydata = line.get_ydata()
-        maxd = 0.05
-        d = pd.np.sqrt((xdata - mouseevent.xdata)**2. + (ydata - mouseevent.ydata)**2.)
 
+        xmin = pd.np.nanmin(line.get_xdata())
+        xmax = pd.np.nanmax(line.get_xdata())
+        ymin = pd.np.nanmin(line.get_ydata())
+        ymax = pd.np.nanmax(line.get_ydata())
+        print(xmin, xmax, ymin, ymax)
+
+        xdata = util.project(line.get_xdata(),self.canvas.figure.bbox.width, min1=xmin, max1=xmax)
+        ydata = util.project(line.get_ydata(),self.canvas.figure.bbox.height, min1=ymin, max1=ymax)
+        print(line.get_xdata(), line.get_ydata())
+        print(xdata, ydata)
+        maxd = 50
+        mousex= util.project(mouseevent.xdata, self.canvas.figure.bbox.width, min1=xmin, max1=xmax)
+        mousey= util.project(mouseevent.ydata, self.canvas.figure.bbox.width, min1=ymin, max1=ymax)
+        d = pd.np.sqrt((xdata - mousex)**2. + (ydata - mousey)**2.)
+        print(d, mousex, mousey)
         ind = pd.np.nonzero(pd.np.less_equal(d, maxd))
-        if len(ind):
+        if len(ind) is 1:
             pickx = pd.np.take(xdata, ind)
             picky = pd.np.take(ydata, ind)
             props = dict(ind=ind, pickx=pickx, picky=picky)
@@ -288,18 +302,18 @@ class VisAnaGUI(tk.LabelFrame):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
-        print("dasEvent: "+ str(vars(event)))
+        #print("dasEvent: "+ str(vars(event)))
         print("ind: "+ str(event.ind))
-        print("artist: "+ str(vars(event.artist)))
+        #print("artist: "+ str(vars(event.artist)))
         #print("me: "+ str(vars(event.mouseevent)))
         print(("hi, %d , " % len(event.ind)))
 
         if len(event.ind) is 1:
 
             text="Selected Value:"
-            for col,cdata in self.df.iteritems():
-                text = text + "\n" + str(col) + ": \t" + str(cdata[event.ind[0]])
-            print(text)
+#            for col,cdata in self.df.iteritems():
+#                text = text + "\n" + str(col) + ": \t" + str(cdata[event.ind[0]])
+            print(text, self.df[event.ind[0]:1+event.ind[0]])
         else:
             text = "time:\nsmall\nbig\ntemp\nhumidity"
         y=self.canvas.figure.bbox.height-event.mouseevent.y
@@ -413,7 +427,7 @@ class VisAnaGUI(tk.LabelFrame):
 ds = datasource.DataSource()
 ds.read_data("../data/dust-2014.dat")
 print("read")
-print(ds.get_base_data().df())
+#print(ds.get_base_data().df())
 root = tk.Tk()
 
 app = VisAnaGUI(master=root, ds=ds)
