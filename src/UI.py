@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import Scale, HORIZONTAL, X
+from tkinter import Scale, HORIZONTAL, X, Listbox
 import datasource
 ## matplotlibs
 import matplotlib
@@ -27,8 +27,6 @@ class VisAnaGUI(tk.LabelFrame):
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         self.plot_tooltip=None
-        self.create_widgets()
-        root.title("Visual Analyser - Gui")
 
         ## save data source
         self.ds = ds
@@ -49,6 +47,15 @@ class VisAnaGUI(tk.LabelFrame):
         ## dummy variable to ignore first update. sliders trigger an 
         ## event at startup, which would lead to redundant update of data
         self.ignore_start_trigger = True
+
+        ## parameter variables
+        self.param_list = ["Small", "Large", "Humidity", "Temperature"]
+        self.param1 = 0
+        self.param2 = 1
+
+
+        self.create_widgets()
+        root.title("Visual Analyser - Gui")
         ## draw data at startup
         self.trigger_update()
 
@@ -56,6 +63,7 @@ class VisAnaGUI(tk.LabelFrame):
     def check_for_update(self):
         ## if there is an unprocessed action older than
         ## the given delay, update data
+        #self.check_listbox_changes()
         if self.unprocessed_action and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
             ## simply block the very first update...
@@ -68,6 +76,8 @@ class VisAnaGUI(tk.LabelFrame):
             self.unprocessed_action = False
         #print("checking for updates...")
         self.after(self.UPDATE_DELAY, self.check_for_update)
+
+    #
 
     ## creates all GUI elements
     def create_widgets(self):
@@ -93,8 +103,14 @@ class VisAnaGUI(tk.LabelFrame):
         self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
         self.timeline.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
 
-        self.projector = tk.Label(self, text="HIER KANN MAN\n EIGENSCHAFTEN\n AUSWAEHLEN\n\n\nbis hier")
+
+        self.projector = tk.LabelFrame(self, bg="#0066ff")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
+
+        self.paramlabel = tk.Label(self.projector, text="Choose Parameters")
+        self.paramlabel.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W))
+
+        self.add_listboxes()
 
         self.history = tk.Text(self, width=50)
         self.history.grid(column=2, row=3, sticky=(tk.N, tk.E, tk.S))
@@ -113,6 +129,21 @@ class VisAnaGUI(tk.LabelFrame):
     ## dummy method
     def say_hi(self):
         print("hi there, everyone!")
+
+    def add_listboxes(self):
+        ## listboxes for parameter selection
+        self.param1box = Listbox(self.projector, exportselection=0)
+        for item in self.param_list:
+            self.param1box.insert("end", item)
+        self.param1box.select_set(self.param1)
+        self.param1box.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
+
+        self.param2box = Listbox(self.projector, exportselection=0)
+        for item in self.param_list:
+            self.param2box.insert("end", item)
+        self.param2box.select_set(self.param2)
+        self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
+
 
     ## add line to history window
     def add_to_history(self, text):
