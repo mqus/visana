@@ -53,6 +53,34 @@ class DataSource:
 	##	attr1: attribute to remain in table
 	##	attr2: attribute to remain in table
 	## 	in_table: table to perform the projection on
+	def groupby(self,out_table,attr, mode,in_table="base", bydate=False):
+		df = self.table_store[in_table].df()
+		if bydate:
+			by=data[attr].dt.normalize()
+		else:
+			by=data[attr]
+
+		grouped = df.groupby(by)
+
+		if mode is 'COUNT':
+			out=grouped.count()
+		elif mode is 'SUM':
+			out=grouped.sum()
+		else:
+			out=grouped.max()
+		#data.groupby().count()
+
+		## narrow data to the specified attributes
+		#df = df[[attr1, attr2]]
+
+		## store results in new table
+		self.table_store[out_table] = DataTable(df=out)
+
+	## perform a projection on data
+	##	out_table: name of new table with results
+	##	attr1: attribute to remain in table
+	##	attr2: attribute to remain in table
+	## 	in_table: table to perform the projection on
 	def project(self,out_table,attr1,attr2,in_table="base"):
 		df = self.table_store[in_table].df()
 
@@ -113,6 +141,17 @@ class DataSource:
 		## store results in new table
 		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 
+
+if __name__ == "__main__":
+	from datetime import datetime
+	ds = DataSource()
+	ds.read_data("../data/dust-2014.dat")
+	print("read")
+	data=ds.get_base_data().df()
+	#days=data["MasterTime"].map(lambda x: x % (24*3600))#(x.year, x.month, x.day))
+	#print(days)
+	#print(data.groupby([pd.DatetimeIndex(data["MasterTime"]) ]).count())
+	print( )
 
 
 
