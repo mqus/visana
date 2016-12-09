@@ -48,10 +48,10 @@ class DataSource:
 		## store results in new table
 		self.table_store[out_table] = DataTable(df=df)
 
-	## perform a projection on data
+	## perform a groupby aggregation on data
 	##	out_table: name of new table with results
-	##	attr1: attribute to remain in table
-	##	attr2: attribute to remain in table
+	##	attr: attribute or list of attributes to group by
+	##	mode: aggregation mode of the other columns
 	## 	in_table: table to perform the projection on
 	def groupby(self,out_table,attr, mode,in_table="base", bydate=False):
 		df = self.table_store[in_table].df()
