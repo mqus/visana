@@ -67,11 +67,13 @@ class VisAnaGUI(tk.LabelFrame):
         self.history['yscrollcommand'] = self.historyslider.set
 
         #for child in self.winfo_children(): child.grid_configure(padx=5, pady=5)
+        self.add_sliders()
+
     def say_hi(self):
         print("hi there, everyone!")
 
     def add_to_history(self, text):
-        self.history.insert('end', text + "\n")
+        self.history.insert('end', "\n" + text )#+ "\n")
 
     ## triggered by changing startslider value
     def updateStart(self, event):
@@ -79,7 +81,7 @@ class VisAnaGUI(tk.LabelFrame):
         endVal = self.endSlider.get()
         if endVal < fromVal:
             self.endSlider.set(self.startSlider.get())
-        self.f1label["text"] = "FROM "+str(self.dates[endVal])
+        self.f1label["text"] = "FROM "+str(self.dates[fromVal])
 
     ## triggered by changing startslider value
     def updateEnd(self, event):
@@ -108,6 +110,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.f2label = tk.Label(self.filter, text="TO VALUE")
         self.f2label.pack()
 
+    def graph_changed(self):
+        pass
 
     ## update view with specified data
     def display_data(self, df, attr_name1="Large", attr_name2="Small"):
@@ -231,7 +235,7 @@ ds.read_data("../data/dust-2014.dat")
 print("read")
 root = tk.Tk()
 
-app = VisAnaGUI(master=root)
+app = VisAnaGUI(master=root, ds=ds)
 ## display base data at startup
 df = ds.get_base_data().df()
 ## which days are in the data?
@@ -245,7 +249,6 @@ date_shown = build_contained_dict(df)
 app.display_data(df)
 ## draw timeline
 app.draw_timeline(date_contained, date_shown)
-app.add_sliders()
 
 
 app.mainloop()
