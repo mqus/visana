@@ -32,7 +32,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         ## save data source
         self.ds = ds
-
+        self.df=None
         ## dictionary describing which days are contained in base data
         ## (for timeline)
         self.dates_contained = self.build_contained_dict(self.ds.get_base_data().df())
@@ -90,8 +90,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.filter.columnconfigure(1, weight=0)
         self.filter.columnconfigure(0, weight=5)
 
-        self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
-        self.timeline.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+#        self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
+#        self.timeline.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
 
         self.projector = tk.Label(self, text="HIER KANN MAN\n EIGENSCHAFTEN\n AUSWAEHLEN\n\n\nbis hier")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
@@ -125,10 +125,11 @@ class VisAnaGUI(tk.LabelFrame):
         endVal = self.endSlider.get()
         self.ds.select(out_table="time_filter", attr_name="MasterTime",
             a=self.dates[fromVal], b=self.dates[endVal])
-        df = self.ds.get_data("time_filter").df()
+        self.df = self.ds.get_data("time_filter").df()
 
-        self.display_data(df)
-        self.draw_timeline(df)
+
+        self.display_data()
+        self.draw_timeline()
 
         self.add_to_history("data update "+str(self.dates[fromVal])+" - "+str(self.dates[endVal]))
 
@@ -192,11 +193,11 @@ class VisAnaGUI(tk.LabelFrame):
         pass
 
     ## update view with specified data
-    def display_data(self, df, attr_name1="Large", attr_name2="Small"):
+    def display_data(self, attr_name1="Large", attr_name2="Small"):
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
-        ax.plot(df[attr_name1], df[attr_name2], marker="o", linewidth=0, picker=True)#, grid=True)
+        ax.plot(self.df[attr_name1], self.df[attr_name2], marker="o", linewidth=0, picker=True)#, grid=True)
         ax.grid(True)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
@@ -204,16 +205,23 @@ class VisAnaGUI(tk.LabelFrame):
         self.canvas.mpl_connect('button_press_event', lambda event: self.canvas._tkcanvas.focus_set())
         self.canvas.mpl_connect('pick_event', self.draw_tooltip)
         #self.canvas.mpl_connect('pick_event', self.onpick)
+        self.canvas_tb=NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
 
     def draw_tooltip(self, event):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
-        print("dasEvent: "+ str(vars(event)))
+        #print("dasEvent: "+ str(vars(event)))
         print("ind: "+ str(event.ind))
         #print("artist: "+ str(vars(event.artist)))
-        print("me: "+ str(vars(event.mouseevent)))
+        #print("me: "+ str(vars(event.mouseevent)))
+        print(("hi, %d , " % len(event.ind)))
+
+        if len(event.ind) is 1:
+            data=self.df[event.ind[0]:event.ind[0]+1]
+            print(data)
+
         y=self.canvas.figure.bbox.height-event.mouseevent.y
         x=event.mouseevent.x
         text="time:\nsmall\nbig\ntemp\nhumidity"
@@ -255,10 +263,10 @@ class VisAnaGUI(tk.LabelFrame):
         return date_contained
 
 
-    def draw_timeline(self, df, shown_dates={}, selected_dates=[]):
+    def draw_timeline(self, selected_dates=[]):
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
-        shown_dates = self.build_contained_dict(df)
+        shown_dates = self.build_contained_dict(self.df)
 
         ## prepare data for timeline
         days = []
