@@ -31,9 +31,6 @@ class VisAnaGUI(tk.LabelFrame):
         ## save data source
         self.ds = ds
         self.df=None
-        ## dictionary describing which days are contained in base data
-        ## (for timeline)
-        self.dates_contained = self.build_contained_dict(self.ds.get_base_data().df())
 
         ## save time of last update to prevent too many
         ## updates when using sliders
@@ -48,14 +45,21 @@ class VisAnaGUI(tk.LabelFrame):
         ## event at startup, which would lead to redundant update of data
         self.ignore_start_trigger = True
 
-        ## parameter variables
-        self.param_list = ["Small", "Large", "Humidity", "Temperature"]
-        self.param1 = 0
-        self.param2 = 1
+        ## parameter variables for listboxes
+        self.param_list = ["Small", "Large", "OutdoorTemp", "RelHumidity"]
+        self.param1 = "Small"
+        self.param2 = "Large"
 
+        ## simple string to describe last action (for history)
+        self.action_str = "Show base data"
+
+        ## dictionary describing which days are contained in base data
+        ## (for timeline)
+        self.dates_contained = self.build_contained_dict(self.ds.get_base_data().df())
 
         self.create_widgets()
         root.title("Visual Analyser - Gui")
+
         ## draw data at startup
         self.trigger_update()
 
@@ -63,9 +67,10 @@ class VisAnaGUI(tk.LabelFrame):
     def check_for_update(self):
         ## if there is an unprocessed action older than
         ## the given delay, update data
-        #self.check_listbox_changes()
+        self.check_listbox_changes()
         if self.unprocessed_action and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
+            print("redraw data")
             ## simply block the very first update...
             ## (there might be prettier solutions)
             if self.ignore_start_trigger:
@@ -77,7 +82,17 @@ class VisAnaGUI(tk.LabelFrame):
         #print("checking for updates...")
         self.after(self.UPDATE_DELAY, self.check_for_update)
 
-    #
+    ## check if listbox params have changed
+    def check_listbox_changes(self):
+        cur_param1 = self.param_list[self.param1box.curselection()[0]]
+        cur_param2 = self.param_list[self.param2box.curselection()[0]]
+        if not (cur_param1 == self.param1 and cur_param2 == self.param2):
+            ## values have changed!
+            print("listboxes have changed!")
+            self.param1 = cur_param1
+            self.param2 = cur_param2
+            self.unprocessed_action = True
+            self.action_str = "New parameters: "+self.param1+" & "+self.param2
 
     ## creates all GUI elements
     def create_widgets(self):
@@ -135,13 +150,15 @@ class VisAnaGUI(tk.LabelFrame):
         self.param1box = Listbox(self.projector, exportselection=0)
         for item in self.param_list:
             self.param1box.insert("end", item)
-        self.param1box.select_set(self.param1)
+        param1_index = self.param_list.index(self.param1)
+        self.param1box.select_set(param1_index)
         self.param1box.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
 
         self.param2box = Listbox(self.projector, exportselection=0)
         for item in self.param_list:
             self.param2box.insert("end", item)
-        self.param2box.select_set(self.param2)
+        param2_index = self.param_list.index(self.param2)
+        self.param2box.select_set(param2_index)
         self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
 
 
@@ -158,11 +175,10 @@ class VisAnaGUI(tk.LabelFrame):
             a=self.dates[fromVal], b=self.dates[endVal])
         self.df = self.ds.get_data("time_filter").df()
 
-
         self.display_data()
         self.draw_timeline()
 
-        self.add_to_history("data update "+str(self.dates[fromVal])+" - "+str(self.dates[endVal]))
+        self.add_to_history(self.action_str)
 
     #########
     ## SLIDER METHODS
@@ -197,6 +213,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.endlabel["text"] = "TO "+str(self.dates[endVal])
         self.unprocessed_action = True
         self.last_action = time()
+        self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
     ## add sliders to GUI
     def add_sliders(self):
@@ -224,11 +241,13 @@ class VisAnaGUI(tk.LabelFrame):
         pass
 
     ## update view with specified data
-    def display_data(self, attr_name1="Large", attr_name2="Small"):
+    def display_data(self):
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
-        ax.plot(self.df[attr_name1], self.df[attr_name2], marker="o", linewidth=0, picker=True)#, grid=True)
+        print("param1="+str(self.param1)+" param2="+str(self.param2))
+
+        ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=True)#, grid=True)
         ax.grid(True)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
@@ -275,21 +294,32 @@ class VisAnaGUI(tk.LabelFrame):
     ## and boolean values for those days that
     ## contain non-missing values
     def build_contained_dict(self, df):
-        #print(df)
-        date_contained = dict()
+        ## create a dict for each parameter which encodes the
+        ## information for each day if there is at least one
+        ## valid measurement
+        date_contained =  {}
+        for param in self.param_list:
+            date_contained[param] = {}
         for dt in rrule.rrule(rrule.DAILY,
             dtstart=datetime(2014,1,1,0,0,0),
             until=datetime(2014,12,31,23,59,0)):
-            date_contained[dt.date()] = False
+            for param in self.param_list:
+                date_contained[param][dt.date()] = False
         ## only check for values in 'Small' and 'Large'
-        df = df[["MasterTime", "Small", "Large"]]
+        #df = df[["MasterTime", "Small", "Large"]]
         ## iterate through tuples and check for each day
         ## if there are non-missing values
         #print(df)
         for row in df.itertuples():
-            if not pd.isnull(row.Small) or not pd.isnull(row.Large):
-                day = row.MasterTime.date()
-                date_contained[day] = True
+            day = row.MasterTime.date()
+            if not pd.isnull(row.Small):
+                date_contained["Small"][day] = True
+            if not pd.isnull(row.Large):
+                date_contained["Large"][day] = True
+            if not pd.isnull(row.OutdoorTemp):
+                date_contained["OutdoorTemp"][day] = True
+            if not pd.isnull(row.RelHumidity):
+                date_contained["RelHumidity"][day] = True
 
         return date_contained
 
@@ -302,11 +332,12 @@ class VisAnaGUI(tk.LabelFrame):
         ## prepare data for timeline
         days = []
         values = []
-        for day in sorted(self.dates_contained.keys()):
-            if self.dates_contained[day]:
+        for day in sorted(self.dates):
+            if self.dates_contained[self.param1][day] and \
+                self.dates_contained[self.param2][day]:
                 days.append(day)
                 ##if random() < 0.01:
-                if shown_dates[day]:
+                if shown_dates[self.param1][day] and shown_dates[self.param2][day]:
                     values.append("blue")
                     if day in selected_dates:
                     #if random() < 0.05:
@@ -352,6 +383,7 @@ class VisAnaGUI(tk.LabelFrame):
 ds = datasource.DataSource()
 ds.read_data("../data/dust-2014.dat")
 print("read")
+print(ds.get_base_data().df())
 root = tk.Tk()
 
 app = VisAnaGUI(master=root, ds=ds)
