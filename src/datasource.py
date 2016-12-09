@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from table import DataTable
 
@@ -90,6 +91,9 @@ class DataSource:
 		## store results in new table
 		self.table_store[out_table] = DataTable(df=df)
 
+	def store_df(self, df, name):
+		self.table_store[name] = DataTable(df=df)
+
 	## perform aggregation on data
 	##	out_table: name of new table with results
 	##	mode: how to aggregate data? AVG, MIN or MAX
@@ -109,37 +113,51 @@ class DataSource:
 		for attr,values in df.iteritems():
 			data[attr]=list()
 			i=0
-			## track data characteristics for result
-			sum=0
-			min=0
-			max=0
-			for value in values:
-				## update min, max and sum for each value
-				if i % limit == 0:
-					min=value
-					max=value
-					sum=0
-				else:
-					if value<min:
-						min=value
-					if value>max:
-						max=value
-				sum=sum+value
-				i=i+1
-				## produce new result row if i%limit==0
-				if i % limit is 0:
-					insval=0
-					if mode is "AVG":
-						insval=sum/limit
-					elif mode is "MAX":
-						insval=max
-					elif mode is "MIN":
-						insval=min
-					data[attr].append(insval)
-					#new_df.insert(int(i / limit), attr, insval)
+			if attr == "MasterTime":
+				for value in values:
+					i += 1
+					if i % limit == 0:
+						data[attr].append(value)
 
-		## store results in new table
+			else:
+				## track data characteristics for result
+				sum=0
+				min=0
+				max=0
+				## count how many non-missing values in interval
+				valid_cnt = 0
+				for value in values:
+					## update min, max and sum for each value
+					if i % limit == 0:
+						min=value
+						max=value
+						sum=0
+						valid_cnt = 0
+					else:
+						if not np.isnan(value):
+							if value<min:
+								min=value
+							if value>max:
+								max=value
+					if not np.isnan(value):
+						valid_cnt += 1
+						sum=sum+value
+					i=i+1
+					## produce new result row if i%limit==0
+					if i % limit is 0:
+						insval=np.nan
+						if valid_cnt > 0:
+							if mode is "AVG":
+								insval=sum/valid_cnt
+							elif mode is "MAX":
+								insval=max
+							elif mode is "MIN":
+								insval=min
+						data[attr].append(insval)
+						#new_df.insert(int(i / limit), attr, insval)
+
 		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
+		#print(table_store[out_table])
 
 
 if __name__ == "__main__":

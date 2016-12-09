@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import Scale, HORIZONTAL, X, Listbox
+from tkinter import Scale, HORIZONTAL, X, Listbox, Spinbox, StringVar
 import datasource
 ## matplotlibs
 import matplotlib
@@ -19,14 +19,17 @@ from time import time
 
 class VisAnaGUI(tk.LabelFrame):
     def __init__(self, master=None, ds=None):
-        tk.LabelFrame.__init__(self, master, bg="#ff6600")
+        #tk.LabelFrame.__init__(self, master, bg="#ff6600")
+        tk.LabelFrame.__init__(self, master, bg="red")
         #self.pack()
         self.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3,weight=1)
+        #self.rowconfigure(2,weight=2)
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         self.plot_tooltip=None
+        self.configure(background="red")
 
         ## save data source
         self.ds = ds
@@ -109,7 +112,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.hi_there["command"] = self.say_hi
         self.hi_there.grid(column=1, row=0, sticky=(tk.W, tk.N))
 
-        self.filter = tk.LabelFrame(self, bg="#0066ff")
+        #self.filter = tk.LabelFrame(self, bg="#0066ff")
+        self.filter = tk.LabelFrame(self, bg="red")
         self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
         self.f1 = tk.Label(self.filter, text="HIER STEHT Dann EIN FILTER!!!")
         self.filter.columnconfigure(1, weight=0)
@@ -119,7 +123,8 @@ class VisAnaGUI(tk.LabelFrame):
 #        self.timeline.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
 
 
-        self.projector = tk.LabelFrame(self, bg="#0066ff")
+        #self.projector = tk.LabelFrame(self, bg="#0066ff")
+        self.projector = tk.LabelFrame(self, bg="red")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
 
         self.paramlabel = tk.Label(self.projector, text="Choose Parameters")
@@ -145,6 +150,20 @@ class VisAnaGUI(tk.LabelFrame):
     def say_hi(self):
         print("hi there, everyone!")
 
+    def aggregate_values(self):
+        limit_val = int(self.noise_spin.get())
+
+        self.ds.store_df(df=self.df, name="tmp")
+        self.ds.aggregate(out_table="aggregate", mode="AVG", attr_names=["MasterTime", self.param1, self.param2], limit=limit_val, in_table="tmp")
+        base_df = self.df
+        self.df = self.ds.get_data(name="aggregate").df()
+
+        self.display_data()
+        self.draw_timeline(df=base_df)
+        self.action_str = "Aggregated values: "+str(limit_val)
+
+        self.add_to_history(self.action_str)
+
     def add_listboxes(self):
         ## listboxes for parameter selection
         self.param1box = Listbox(self.projector, exportselection=0)
@@ -161,6 +180,15 @@ class VisAnaGUI(tk.LabelFrame):
         self.param2box.select_set(param2_index)
         self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
 
+        var = StringVar(self.projector)
+        var.set("10")
+        self.noise_spin = Spinbox(self.projector, from_=0, to=1440, textvariable=var)
+        self.noise_spin.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
+
+        self.testbutton = tk.Button(self.projector)
+        self.testbutton["text"] = "Aggregate values (minutes)"
+        self.testbutton["command"] = self.aggregate_values
+        self.testbutton.grid(column=0, row=4, sticky=(tk.W, tk.N))
 
     ## add line to history window
     def add_to_history(self, text):
@@ -242,6 +270,8 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## update view with specified data
     def display_data(self):
+        print(self.df.describe())
+        print("data size = "+str(len(self.df)))
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
@@ -249,6 +279,8 @@ class VisAnaGUI(tk.LabelFrame):
 
         ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=True)#, grid=True)
         ax.grid(True)
+        ax.set_xlabel(self.param1)
+        ax.set_ylabel(self.param2)
         #df.plot(x="MasterTime", y="Large", ax=ax)
 
         self.canvas = FigureCanvasTkAgg(fig, self)
@@ -328,6 +360,7 @@ class VisAnaGUI(tk.LabelFrame):
         ## information for each day if there is at least one
         ## valid measurement
         date_contained =  {}
+        df_params = df.columns.values
         for param in self.param_list:
             date_contained[param] = {}
         for dt in rrule.rrule(rrule.DAILY,
@@ -342,22 +375,24 @@ class VisAnaGUI(tk.LabelFrame):
         #print(df)
         for row in df.itertuples():
             day = row.MasterTime.date()
-            if not pd.isnull(row.Small):
+            if "Small" in df_params and not pd.isnull(row.Small):
                 date_contained["Small"][day] = True
-            if not pd.isnull(row.Large):
+            if "Large" in df_params and not pd.isnull(row.Large):
                 date_contained["Large"][day] = True
-            if not pd.isnull(row.OutdoorTemp):
+            if "OutdoorTemp" in df_params and not pd.isnull(row.OutdoorTemp):
                 date_contained["OutdoorTemp"][day] = True
-            if not pd.isnull(row.RelHumidity):
+            if "RelHumidity" in df_params and not pd.isnull(row.RelHumidity):
                 date_contained["RelHumidity"][day] = True
 
         return date_contained
 
 
-    def draw_timeline(self, selected_dates=[]):
+    def draw_timeline(self, df=None, selected_dates=[]):
+        if df is None:
+            df = self.df
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
-        shown_dates = self.build_contained_dict(self.df)
+        shown_dates = self.build_contained_dict(df)
 
         ## prepare data for timeline
         days = []
@@ -377,12 +412,15 @@ class VisAnaGUI(tk.LabelFrame):
 
 
         ## plot timeline
-        fig = Figure(figsize=(6,1), dpi=100)
+        fig = Figure(figsize=(10,2), dpi=100)
         ax = fig.add_subplot(111)
 
         ax.scatter(days, [1]*len(days), c=values,
                    marker='|', s=200)#, fontsize=10)
+        hfmt = mdates.DateFormatter('%m')
         fig.autofmt_xdate()
+
+        ax.xaxis.set_major_formatter(hfmt)
 
         ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2014,12,31,0,0,0)])
 
@@ -396,7 +434,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         ## add to GUI
         self.timeline = FigureCanvasTkAgg(fig, self)
-        self.timeline.get_tk_widget().grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+        self.timeline.get_tk_widget().grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W, tk.S),columnspan=5)
 
 
 
