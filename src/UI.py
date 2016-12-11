@@ -186,6 +186,18 @@ class VisAnaGUI(tk.LabelFrame):
         self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
         self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
 
+    """
+     general process:
+     base
+     time-limited
+     aggregated
+
+
+
+    """
+    def df(self, name=None):
+        return ds.get_data(name).df()
+
 
     ## dummy method
     def say_hi(self):
@@ -294,7 +306,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.set_xlim(x.min(), x.max(), emit=False)
         self.ax.set_ylim(y.min(), y.max(), emit=False)
         self.canvas.draw()
-
+    # TODO
     def handle_changed_axes(self):
         self.clean_tooltip()
         xlim = self.ax.get_xlim()
@@ -304,9 +316,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.add_to_history(text)
 
     def handle_pick(self, line, mouseevent):
-        #print("button", vars(mouseevent))#.button)
-        #print(type(mouseevent.button))
-        #print(mouseevent.button is 1, mouseevent.button == 1)
+
         if mouseevent.button == 1:
             return self.handle_mouse_event(mouseevent)
         else:
@@ -345,7 +355,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         d = pd.np.sqrt((xdata - mousex)**2. + (ydata - mousey)**2.)
         #print(d, mousex, mousey)
-        ind = pd.np.nonzero(pd.np.less_equal(d, radius))[0]
+        ind = self.df.index.values[pd.np.nonzero(pd.np.less_equal(d, radius))[0]]
         if len(ind) >0:
             props = dict(ind=ind)
             return True, props
