@@ -32,6 +32,12 @@ class DataSource:
 	def pop_table(self,name):
 		self.table_store.pop(name)
 
+	## give in_table another alias out_table
+	def link(self, out_table, in_table="base"):
+		df = self.table_store[in_table].df()
+		## store 'copy' in new table
+		self.table_store[out_table] = DataTable(df=df)
+
 	## perform a selection on data
 	##	out_table: name of new table with results
 	##	attr_name: attribute for the selection
