@@ -177,8 +177,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.grid(True)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
         self.canvas.mpl_connect('button_press_event', lambda event: self.canvas._tkcanvas.focus_set())
-        #self.canvas.mpl_connect('motion_notify_event', self.draw_tooltip)
-        self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+        self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
 
         # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
@@ -330,9 +330,10 @@ class VisAnaGUI(tk.LabelFrame):
         #print("PICKER")
         #print(mouseevent, vars(mouseevent))
         xydata=self.ax.transData.transform(self.df[[self.param1, self.param2]]).transpose()
-
-        mxy= self.ax.transData.transform([mouseevent.xdata,mouseevent.ydata])
-
+        try:
+            mxy= self.ax.transData.transform([mouseevent.xdata,mouseevent.ydata])
+        except ValueError:
+            return False,dict()
         xdata=xydata[0]
         ydata=xydata[1]
         mousex=mxy[0]
@@ -354,6 +355,8 @@ class VisAnaGUI(tk.LabelFrame):
     def draw_tooltip(self, event, ind=None):
         if ind is None:
             ind=event.ind
+            event=event.mouseevent
+
 
         #print("ind: "+ str(ind))
         #print("me: "+ str(vars(event.mouseevent)))
@@ -376,13 +379,13 @@ class VisAnaGUI(tk.LabelFrame):
             dfmin=self.ds.get_data("sel_aggremin").df()
             dfmax=self.ds.get_data("sel_aggremax").df()
 
-            print("sel",self.ds.get_data("selection").df())
+            #print("sel",self.ds.get_data("selection").df())
             for col,cdata in dfmin.iteritems():
                 text += '\n {}: \t{} to {}'.format(col, cdata[0], dfmax[col][0])
         c_height=self.canvas.figure.bbox.height
         c_width=self.canvas.figure.bbox.width
-        y=c_height-event.mouseevent.y
-        x=event.mouseevent.x
+        y=c_height-event.y
+        x=event.x
 
         #get bounding box of a possible tooltip
         self.plot_tooltip=self.canvas.get_tk_widget().create_text(x+2, y, anchor=tk.NW,text=text)
