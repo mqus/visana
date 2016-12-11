@@ -7,6 +7,7 @@ import datasource
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib.figure import Figure
+import matplotlib.dates as mdates
 from datetime import datetime
 import pandas as pd
 from dateutil import rrule
@@ -32,6 +33,10 @@ class VisAnaGUI(tk.LabelFrame):
         ## save data source
         self.ds = ds
         self.df=None
+
+        ## for handling aggregated data, so that we prevent
+        ## bugs when aggregating multiple times
+        self.is_aggregated = False
 
         ## save time of last update to prevent too many
         ## updates when using sliders
@@ -71,7 +76,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.check_listbox_changes()
         if self.unprocessed_action and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
-            print("redraw data")
+            #print("redraw data")
             ## simply block the very first update...
             ## (there might be prettier solutions)
             if self.ignore_start_trigger:
@@ -151,16 +156,21 @@ class VisAnaGUI(tk.LabelFrame):
     def aggregate_values(self):
         limit_val = int(self.noise_spin.get())
 
-        self.ds.store_df(df=self.df, name="tmp")
-        self.ds.aggregate(out_table="aggregate", mode="AVG", attr_names=["MasterTime", self.param1, self.param2], limit=limit_val, in_table="tmp")
+        if not self.is_aggregated:
+            self.ds.store_df(df=self.df, name="to_aggregate")
+
+        self.ds.aggregate(out_table="aggregate", mode="AVG", attr_names=["MasterTime", self.param1, self.param2], limit=limit_val, in_table="to_aggregate")
         base_df = self.df
         self.df = self.ds.get_data(name="aggregate").df()
+
 
         self.display_data()
         self.draw_timeline(df=base_df)
         self.action_str = "Aggregated values: "+str(limit_val)
 
         self.add_to_history(self.action_str)
+
+        self.is_aggregated = True
 
     def add_listboxes(self):
         ## listboxes for parameter selection
@@ -190,6 +200,8 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## add line to history window
     def add_to_history(self, text):
+        if not "Aggregate" in text:
+            self.is_aggregated = False
         self.history.insert('end', "\n" + text )#+ "\n")
         self.history.see("end")
 
@@ -202,7 +214,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.df = self.ds.get_data("time_filter").df()
 
         self.display_data()
-        self.draw_timeline()
+        #self.draw_timeline()
 
         self.add_to_history(self.action_str)
 
@@ -271,7 +283,7 @@ class VisAnaGUI(tk.LabelFrame):
         fig = Figure(figsize=(5,5), dpi=100)
         ax = fig.add_subplot(111)
         #df.plot.scatter(x=attr_name1, y=attr_name2, ax=ax, grid=True, picker=True)
-        print("param1="+str(self.param1)+" param2="+str(self.param2))
+        #print("param1="+str(self.param1)+" param2="+str(self.param2))
 
         #ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=self.line_picker)
         ax.scatter(x=self.df[self.param1], y=self.df[self.param2], marker="o",picker=5)
