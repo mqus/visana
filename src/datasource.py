@@ -100,11 +100,10 @@ class DataSource:
 	##	attr_names: list of attributes to aggregate and keep in results
 	##	limit (or 'range'): only aggregate that many rows for each resulting row
 	## 	in_table: table to perform the aggregation on
-	def aggregate(self,out_table,mode,attr_names,limit=0,in_table="base"):
+	def aggregate(self, out_table, mode, limit=0, in_table="base"):
 		df = self.table_store[in_table].df() #type:pd.DataFrame
 		#new_df = pd.DataFrame(columns=attr_names)
 		## only view selected columns
-		df = df[attr_names]
 		data=dict() ## dictionary for results
 		## aggregate all rows in one step if limit is 0
 		if limit is 0:
@@ -115,8 +114,10 @@ class DataSource:
 			i=0
 			if attr == "MasterTime":
 				for value in values:
+					if i % limit == 0 and mode is "MIN":
+						data[attr].append(value)
 					i += 1
-					if i % limit == 0:
+					if i % limit == 0 and mode is not "MIN":
 						data[attr].append(value)
 
 			else:
@@ -128,7 +129,7 @@ class DataSource:
 				valid_cnt = 0
 				for value in values:
 					## update min, max and sum for each value
-					if i % limit == 0:
+					if i % limit == 0 or np.isnan(min):
 						min=value
 						max=value
 						sum=0
@@ -158,6 +159,14 @@ class DataSource:
 
 		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 		#print(table_store[out_table])
+
+	#select with multiple ids
+	def select_ids(self,out_table, ids, in_table="base"):
+		df = self.table_store[in_table].df()  # type:pd.DataFrame
+		df= df.loc[ids]
+		self.table_store[out_table] = DataTable(df=df)
+
+
 
 
 if __name__ == "__main__":
