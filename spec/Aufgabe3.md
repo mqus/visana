@@ -1,6 +1,3 @@
-#Aufgabe 3: 3 Operatoren
-Während die ersten beiden Operatoren einfach mit der pandas-Library auszuführen sind(select: datasource.py:42-43 und 
-project: datasource.py:57 ), ist der Aggregate-Operator ein wenig umfangreicher. In unserem Fall iterieren wir für 
-alle ausgewählten Spalten(datasource.py:72,78) jeweils über die einzelnen Werte(datasource.py:85) und merken uns den 
-aggregierten Wert von jeweils RANGE Werten (datasource.py:99-107 (RANGE = limit))und fügen ihn zu unserer neuen Spalte 
-hinzu. Am Schluss werden alle Spalten wieder zu einem DataFrame zusammengefügt.
+#Aufgabe 3: Zeitlicher Filter
+Die Daten können in einem beliebigen Zeitintervall dargestellt werden, auf den Tag genau. Hierfür enthält das GUI oben zwei Slider, die über alle Tage im Jahr laufen. Beim oberen Slider kann das Anfangsdatum, und beim unteren das Enddatum ausgewählt werden. Die Aktualisierung erfolgt automatisch, wobei eine kleine Verzögerung eingebaut ist, um nicht während des Einstellens des Sliders schon unnötige Updates zu machen.
+Die Darstellung wird für genau die Daten in diesem Zeitraum aktualisiert und die Achsenbeschriftungen usw. angepasst.
