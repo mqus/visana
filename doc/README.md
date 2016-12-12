@@ -29,9 +29,10 @@ Wir werden trotzdem beim nächsten Meilenstein versuchen, etwas mehr Komfort in 
 - Scatterplot-Darstellungsfunktion und 
 	Koordinaten-Transformierung von matplotlib
 - Übersetzung von python-Code in ein Grafisches Interface von tkinter
+- die vorgefertigten Widgets und die matplotlibintegration von tkinter
 - ultraschnelle Listenverarbeitung von numpy und pandas
   - unter anderem in handle_mouse_event und der datasource
-- 
+
 
 
 
