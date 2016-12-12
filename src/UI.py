@@ -20,27 +20,27 @@ import util
 class VisAnaGUI(tk.LabelFrame):
     def __init__(self, master=None, ds=None):
 
+        self.dates = []
+        for dt in rrule.rrule(rrule.DAILY,
+            dtstart=datetime(2014,1,1,0,0,0),
+            until=datetime(2015,1,1,0,0,0)):
+            self.dates.append(dt.date())
+
+
         ## save data source
-        self.ds = ds
+        self.ds = ds #type:datasource.DataSource
+        self.ds.groupby("all_days", "MasterTime", "COUNT","base", bydate=True)
         #self.ds.link("show")
         #self.df=ds.get_base_data().df()
 
-        ## for handling aggregated data, so that we prevent
-        ## bugs when aggregating multiple times
-        self.is_aggregated = False
-
         ## parameter variables for listboxes
-        self.param_list = ["MasterTime", "Small", "Large", "OutdoorTemp", "RelHumidity"]
+        self.param_list = ["Small", "Large", "OutdoorTemp","RelHumidity"]
         self.param2 = "Small"
         self.param1 = "Large"
         self.aggregation_limit=1
 
         ## simple string to describe last action (for history)
         self.action_str = "Show base data"
-
-        ## dictionary describing which days are contained in base data
-        ## (for timeline)
-        self.dates_contained = self.build_contained_dict(self.ds.get_base_data().df())
 
         self.plot_tooltip=None
         self.select_rect=None
@@ -54,8 +54,9 @@ class VisAnaGUI(tk.LabelFrame):
         self.last_action = time()
         ## delay after last data update and action (in ms)
         self.UPDATE_DELAY = 500
-        ## was there an action triggering an update? (0=no, 1=only projection, 2=withselection)
-        self.unprocessed_action = 2
+        ## was there an action triggering an update?
+        # (0=no, 1=only the timeline, 2=axes and timeline, 3=with selection, 4 with tidyup)
+        self.unprocessed_action = 4
         ## calls check_for_update() method after delay has passed
         self.after(self.UPDATE_DELAY, self.check_for_update)
         ## dummy variable to ignore first update. sliders trigger an
@@ -79,11 +80,10 @@ class VisAnaGUI(tk.LabelFrame):
         self.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3,weight=1)
+        self.rowconfigure(2,minsize=100)
         self.configure(background="red")
 
         self.create_widgets()
-
-
 
     ## creates all GUI elements
     def create_widgets(self):
@@ -91,22 +91,18 @@ class VisAnaGUI(tk.LabelFrame):
         self.toolbar.grid(column=0, row=0, sticky=(tk.W, tk.N, tk.E), columnspan=5)
 
 
-        self.QUIT = tk.Button(self.toolbar, text="QUIT", fg="red",
-                              command=root.destroy)
+        self.QUIT = tk.Button(self.toolbar, text="QUIT", fg="red", command=root.destroy)
         self.QUIT.grid(column=0, row=0, sticky=(tk.W, tk.N))
 
         self.reset_view_btn = tk.Button(self.toolbar)
         self.reset_view_btn["text"] = "Reset the View"
-        self.reset_view_btn["command"] = self.say_hi
+        self.reset_view_btn["command"] = self.reset_to_start
         self.reset_view_btn.grid(column=1, row=0, sticky=(tk.W, tk.N))
 
-        #self.filter = tk.LabelFrame(self, bg="#0066ff")
-        self.filter = tk.LabelFrame(self, bg="red")
-        self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
-        self.f1 = tk.Label(self.filter, text="HIER STEHT Dann EIN FILTER!!!")
-        self.filter.columnconfigure(1, weight=0)
-        self.filter.columnconfigure(0, weight=5)
-
+        self.tdvar = tk.StringVar(value="0")
+        self.tidy_up = tk.Checkbutton(self.toolbar, text='Tidy Up Data', command=self.handle_tidy_up,
+                                      variable=self.tdvar)
+        self.tidy_up.grid(column=2, row=0, sticky=(tk.W, tk.N))
 
         self.projector = tk.LabelFrame(self, bg="red")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
@@ -118,6 +114,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.history = tk.Text(self, width=45)
         self.history.grid(column=2, row=3, sticky=(tk.N, tk.E, tk.S), rowspan=2)
+        self.history.insert('end', "\n")
 
         self.historyslider = tk.Scrollbar(self,orient=tk.VERTICAL, command=self.history.yview)
         self.historyslider.grid(column=3, row=3, sticky=(tk.N, tk.S), rowspan=2)
@@ -145,9 +142,9 @@ class VisAnaGUI(tk.LabelFrame):
         self.param2box.bind('<<ListboxSelect>>', self.handle_paramsChanged)
         self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
 
-        var = StringVar(self.projector)
-        var.set(str(self.aggregation_limit))
-        self.noise_spin = Spinbox(self.projector, from_=1, to=1440, textvariable=var)
+        self.var = StringVar(self.projector)
+        self.var.set(str(self.aggregation_limit))
+        self.noise_spin = Spinbox(self.projector, from_=1, to=1440, textvariable=self.var)
         self.noise_spin.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
 
         self.testbutton = tk.Button(self.projector)
@@ -157,25 +154,26 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## add sliders to GUI
     def create_sliders(self):
-        self.dates = []
-        for dt in rrule.rrule(rrule.DAILY,
-            dtstart=datetime(2014,1,1,0,0,0),
-            until=datetime(2014,12,31,23,59,0)):
-            self.dates.append(dt.date())
-
         ## init sliders
-        self.startSlider = Scale(self.filter, from_=0, to=364, orient=HORIZONTAL, command=self.update_start)
+
+        #self.filter = tk.LabelFrame(self, bg="#0066ff")
+        self.filter = tk.LabelFrame(self, bg="red")
+        self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+        self.filter.columnconfigure(1, weight=1)
+        self.filter.columnconfigure(0, weight=0)
+
+        self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_start)
         self.startSlider.set(0)
-        self.endSlider = Scale(self.filter, from_=0, to=364, orient=HORIZONTAL, command=self.update_end)
-        self.endSlider.set(364)
+        self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_end)
+        self.endSlider.set(365)
 
         ## add sliders and labels to GUI
-        self.startSlider.grid(column=0, row=0, sticky=(tk.W, tk.N, tk.E))
+        self.startSlider.grid(column=1, row=0, sticky=(tk.W, tk.N, tk.E))
         self.startlabel = tk.Label(self.filter, text="FROM \tVALUE")
-        self.startlabel.grid(column=1, row=0, sticky=(tk.W))
-        self.endSlider.grid(column=0, row=1, sticky=(tk.W, tk.S, tk.E))
+        self.startlabel.grid(column=0, row=0, sticky=(tk.W))
+        self.endSlider.grid(column=1, row=1, sticky=(tk.W, tk.S, tk.E))
         self.endlabel = tk.Label(self.filter, text="TO \tVALUE")
-        self.endlabel.grid(column=1, row=1, sticky=(tk.W))
+        self.endlabel.grid(column=0, row=1, sticky=(tk.W))
 
     #add an empty plot to the GUI
     def create_plot(self):
@@ -200,22 +198,38 @@ class VisAnaGUI(tk.LabelFrame):
         util.zoom_factory(self.ax)
 
 
-#
-
     ############################
     # UI HANDLER
 
     ## dummy method
-    def say_hi(self):
-        print("hi there, everyone!")
+    def reset_to_start(self):
+        self.clean_tooltip(True)
+        self.param1box.select_set("Large")
+        self.param2box.select_set("Small")
+        self.startSlider.set(0)
+        self.endSlider.set(365)
+        self.var.set(0)
+
+
+        self.action_str = "Show base data"
+        #print("hi there, everyone!")
+
 
     def handle_aggregate_btn(self):
         self.aggregation_limit = int(self.noise_spin.get())
 
         self.action_str = "Aggregated values: "+str(self.aggregation_limit)
 
-        self.unprocessed_action=2
+        self.unprocessed_action=max(self.unprocessed_action, 3)
 
+    def handle_tidy_up(self):
+        if self.tdvar.get() is "0":
+            self.action_str="show raw data"
+        else:
+            self.action_str="tidy up data, remove all points where:" \
+                            "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
+                            "\n  RelHumidity<0 or RelHumidity>100"
+        self.unprocessed_action=max(self.unprocessed_action, 4)
 
     #########
     ## SLIDER METHODS
@@ -248,7 +262,7 @@ class VisAnaGUI(tk.LabelFrame):
         endVal = self.endSlider.get()
         self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
         self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
-        self.unprocessed_action = 2
+        self.unprocessed_action = max(self.unprocessed_action, 3)
         self.last_action = time()
         self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
@@ -259,7 +273,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param2 = self.param_list[self.param2box.curselection()[0]]
 
         self.action_str = "New parameters: " + self.param1 + " & " + self.param2
-        self.unprocessed_action= max(self.unprocessed_action, 1)
+        self.unprocessed_action= max(self.unprocessed_action, 2)
 
 
 
@@ -286,19 +300,19 @@ class VisAnaGUI(tk.LabelFrame):
     ## if no mousebutton is pressed and no points were selected, a hover-tooltip is shown.
     ## if the left button is pressed, (re-)draw the selection indicator
     def handle_hover(self, mouseevent):
-        if not mouseevent.button ==1 and self.select_rect is None:
+        if not mouseevent.button in [1,3] and self.select_rect is None:
             isover, props = self.handle_mouse_event(mouseevent)
 
             if isover:
                 self.draw_tooltip(mouseevent, props["ind"])
 
-        elif mouseevent.button == 1:
+        elif mouseevent.button in [1,3]:
             xmin = min(mouseevent.xdata, self.mouse_pressed[0])
             xmax = max(mouseevent.xdata, self.mouse_pressed[0])
             ymin = min(mouseevent.ydata, self.mouse_pressed[1])
             ymax = max(mouseevent.ydata, self.mouse_pressed[1])
             bbox=(xmin, ymin, xmax, ymax)
-            self.clean_tooltip(True)
+            self.clean_tooltip(True, emit=False)
             bbox2=self.ax.transData.transform(bbox)
             c_height = self.canvas.figure.bbox.height
             bbox3=(bbox2[0], c_height-bbox2[1], bbox2[2],c_height-bbox2[3])
@@ -307,7 +321,7 @@ class VisAnaGUI(tk.LabelFrame):
     ## is called whenever a mousebutton is clicked while the mouse is over the plot.
     ##  if the left button is pushed, we begin to draw a selection area
     def handle_mouse_down(self, mouseevent):
-        if mouseevent.button == 1:
+        if mouseevent.button in [1,3]:
             self.clean_tooltip(True)
             self.mouse_pressed=(mouseevent.xdata, mouseevent.ydata)
 
@@ -315,7 +329,7 @@ class VisAnaGUI(tk.LabelFrame):
     ## if the left button was pressed and there are points within the selection area, select those points and show a
     ##  tooltip containing information about those selected points. If not, clean up.
     def handle_mouse_up(self, mouseevent):
-        if mouseevent.button == 1:
+        if mouseevent.button in [1,3]:
             xmin = min(mouseevent.xdata, self.mouse_pressed[0])
             xmax = max(mouseevent.xdata, self.mouse_pressed[0])
             ymin = min(mouseevent.ydata, self.mouse_pressed[1])
@@ -323,16 +337,25 @@ class VisAnaGUI(tk.LabelFrame):
             if xmin == xmax and ymin == ymax:
                 self.clean_tooltip(True)
             else:
-                self.ds.select("selected", self.param1, xmin, xmax, "show")
-                self.ds.select("selected", self.param2, ymin, ymax, "selected")
-                ind=self.df("selected").index.values
-                if len(ind)>0:
-                    text="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
-                    self.add_to_history(text)
-                    self.draw_tooltip(mouseevent,ind, True)
+                if mouseevent.button == 1:
+                    self.ds.select("selected", self.param1, xmin, xmax, "show")
+                    self.ds.select("selected", self.param2, ymin, ymax, "selected")
+                    ind=self.df("selected").index.values
+                    if len(ind)>0:
+                        text="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
+                        self.add_to_history(text)
+                        self.draw_tooltip(mouseevent,ind, True)
+                        self.unprocessed_action=max(self.unprocessed_action, 1)
+                    else:
+                        self.clean_tooltip(True)
                 else:
-                    self.clean_tooltip(True)
+                    self.clean_tooltip(True, emit=False)
+                    self.ax.set_xlim((xmin,xmax))
+                    self.ax.set_ylim((ymin,ymax))
+                    self.canvas.draw()
 
+    ## handle any mouse event where it has to be clarified whether there's a marker under the mouse or not. If so,
+    ##  return all index values of the concerning markers.
     def handle_mouse_event(self, mouseevent, radius=5):
         """
         find the points within a certain radius from the mouse in
@@ -364,6 +387,7 @@ class VisAnaGUI(tk.LabelFrame):
         else:
             return False, dict()
 
+    ## draws a tooltip and generates the information it contains from an event with/and a list of index values
     def draw_tooltip(self, event, ind=None, selected=False):
         if ind is None:
             ind=event.ind
@@ -426,43 +450,52 @@ class VisAnaGUI(tk.LabelFrame):
         self.plot_tooltip=self.canvas.get_tk_widget().create_text(x+adj, y, anchor=anchor,text=text)
 
 
+    # draws a timeline (as a plot)
+    def draw_timeline(self):
 
-    def draw_timeline(self, df=None, selected_dates=[]):
-        if df is None:
-            df = self.df("show")
+        #df = self.df("show")
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
-        shown_dates = self.build_contained_dict(df)
+        #shown_dates = self.build_contained_dict(df)
 
+        selected_dates=[]
+        if self.select_rect is not None:
+            print("b",self.ds.exists("selected"))
+            self.ds.groupby("selected_days", "MasterTime", "COUNT", "selected", bydate=True)
+            selected_dates = self.df("selected_days").index.values
+        shown_dates=self.df("shown_dates").index.values
         ## prepare data for timeline
         days = []
         values = []
-        for day in sorted(self.dates):
-            if self.dates_contained[self.param1][day] and \
-                self.dates_contained[self.param2][day]:
+
+        for day in self.df("all_days").index.values:
+            if self.df("all_days")[self.param1][day]>0 and self.df("all_days")[self.param2][day]>0:
                 days.append(day)
                 ##if random() < 0.01:
-                if shown_dates[self.param1][day] and shown_dates[self.param2][day]:
+                #if self.dates[self.startSlider.get()] <= day < self.dates[self.endSlider.get()]:
+                if day in shown_dates:
                     values.append("blue")
                     if day in selected_dates:
                     #if random() < 0.05:
                         values.append("red")
                 else:
                     values.append("lightskyblue")
-
+        #print("d:",days, values)
 
         ## plot timeline
-        fig = Figure(figsize=(10,2), dpi=100)
+        fig = Figure(figsize=(12,1), dpi=75)
         ax = fig.add_subplot(111)
 
         ax.scatter(days, [1]*len(days), c=values,
-                   marker='|', s=200)#, fontsize=10)
-        hfmt = mdates.DateFormatter('%m')
-        fig.autofmt_xdate()
+                   marker='|', s=300)#, fontsize=10)
+        #fig.xt
+        hfmt = mdates.DateFormatter("%b '%y")
+        # fig.subplots_adjust(left=0.03, right=0.97, top=1)
 
         ax.xaxis.set_major_formatter(hfmt)
-
-        ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2014,12,31,0,0,0)])
+        fig.autofmt_xdate()
+        #ax.set_xticklabels(ax.xaxis.get_minorticklabels(), rotation=0)
+        ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2015,1,1,0,0,0)])
 
         ## everything after this is turning off stuff that's plotted by default
         ax.yaxis.set_visible(False)
@@ -471,10 +504,15 @@ class VisAnaGUI(tk.LabelFrame):
         ax.spines['top'].set_visible(False)
         ax.xaxis.set_ticks_position('bottom')
         ax.get_yaxis().set_ticklabels([])
+        fig.tight_layout(pad=0)
+
+        print(fig.get_figheight())
+        #fig.subplots_adjust(top=1, right=0.99)
 
         ## add to GUI
         self.timeline = FigureCanvasTkAgg(fig, self)
         self.timeline.get_tk_widget().grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W, tk.S),columnspan=5)
+        print("h:",self.timeline.figure.bbox.height)
 
     #####################
     # UPDATE-FUNCTIONS
@@ -496,7 +534,6 @@ class VisAnaGUI(tk.LabelFrame):
             else:
                 ## update data
                 self.update_plot()
-            self.unprocessed_action = 0
         #print("checking for updates...")
         self.after(self.UPDATE_DELAY, self.check_for_update)
 
@@ -514,25 +551,39 @@ class VisAnaGUI(tk.LabelFrame):
     """
     ## draw new data according to current positions of date sliders and the aggregation limit
     def update_plot(self):
-        if self.unprocessed_action >=2:
+        if self.unprocessed_action >= 4:
+            if self.tdvar.get() is "0":
+                self.ds.link("after_tidyup","base")
+            else:
+                self.ds.select("after_tidyup", "Large",a=0, in_table="base")
+                self.ds.select("after_tidyup", "OutdoorTemp",b=40, in_table="after_tidyup")
+                self.ds.select("after_tidyup", "RelHumidity",0,100, in_table="after_tidyup")
+                self.ds.select("after_tidyup", "Small",a=0, in_table="after_tidyup")
+                #self.action_str = "tidy up data, remove all points where:" \
+                #                  "\n\tOutdoorTemp>40 or Small<0 or Large<0 or " \
+                #                  "\n\tRelHumidity<0 or RelHumidity>100"
+
+        if self.unprocessed_action >=3:
             fromVal = self.startSlider.get()
             endVal = self.endSlider.get()
 
             self.ds.select(out_table="time-limited", attr_name="MasterTime",
-                a=self.dates[fromVal], b=self.dates[endVal])
+                a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
             #self.df = self.ds.get_data("time_filter").df()
             if self.aggregation_limit==1:
                 self.ds.link("show", "time-limited")
             else:
                 self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="time-limited")
-
-        try:
+            self.ds.groupby("shown_dates","MasterTime", "COUNT", "show", bydate=True)
+#        try:
+        if self.unprocessed_action>=2:
             self.draw_data()
-            #self.draw_timeline()
+            self.draw_timeline()
             self.add_to_history(self.action_str)
-        except:
-
-            pass
+        else:
+            self.draw_timeline()
+#        except:
+#            pass
         self.unprocessed_action=0
 
 
@@ -550,15 +601,15 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.set_ylabel(self.param2)
         #self.ax.set_xlim(x.min(), x.max(), emit=False)
         #self.ax.set_ylim(y.min(), y.max(), emit=False)
-        self.canvas.draw()
         #self.canvas.
-        self.fig.tight_layout()
+        self.fig.tight_layout(pad=0)
+        self.canvas.draw()
 
     #################
     # helper-functions
 
-    def df(self, name=None):
-        return ds.get_data(name).df()
+    def df(self, name=None) -> pd.DataFrame:
+        return self.ds.get_data(name).df()
 
     ## add line to history window
     def add_to_history(self, text):
@@ -566,7 +617,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.history.see("end")
 
     ## remove the tooltip if shown
-    def clean_tooltip(self, with_select_rect=False):
+    def clean_tooltip(self, with_select_rect=False, emit=True):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
@@ -574,57 +625,8 @@ class VisAnaGUI(tk.LabelFrame):
         if with_select_rect and self.select_rect is not None:
             self.canvas.get_tk_widget().delete(self.select_rect)
             self.select_rect=None
-
-    ## build a dictionary with 365 days as keys
-    ## and boolean values for those days that
-    ## contain non-missing values
-    def build_contained_dict(self, df):
-        ## create a dict for each parameter which encodes the
-        ## information for each day if there is at least one
-        ## valid measurement
-        date_contained = {}
-        df_params = df.columns.values
-        for param in self.param_list:
-            date_contained[param] = {}
-        for dt in rrule.rrule(rrule.DAILY,
-                              dtstart=datetime(2014, 1, 1, 0, 0, 0),
-                              until=datetime(2014, 12, 31, 23, 59, 0)):
-            for param in self.param_list:
-                date_contained[param][dt.date()] = False
-        ## only check for values in 'Small' and 'Large'
-        # df = df[["MasterTime", "Small", "Large"]]
-        ## iterate through tuples and check for each day
-        ## if there are non-missing values
-        # print(df)
-        for row in df.itertuples():
-            day = row.MasterTime.date()
-            if "Small" in df_params and not pd.isnull(row.Small):
-                date_contained["Small"][day] = True
-            if "Large" in df_params and not pd.isnull(row.Large):
-                date_contained["Large"][day] = True
-            if "OutdoorTemp" in df_params and not pd.isnull(row.OutdoorTemp):
-                date_contained["OutdoorTemp"][day] = True
-            if "RelHumidity" in df_params and not pd.isnull(row.RelHumidity):
-                date_contained["RelHumidity"][day] = True
-
-        return date_contained
-
-
-
-
-
-
-                ## check if listbox params have changed
-    # def check_listbox_changes(self):
-    #     cur_param1 = self.param_list[self.param1box.curselection()[0]]
-    #     cur_param2 = self.param_list[self.param2box.curselection()[0]]
-    #     if not (cur_param1 == self.param1 and cur_param2 == self.param2):
-    #         ## values have changed!
-    #         print("listboxes have changed!")
-    #         self.param1 = self.param_list[self.param1box.curselection()[0]]
-    #         self.param2 = self.param_list[self.param2box.curselection()[0]]
-    #         self.unprocessed_action = True
-    #         self.action_str = "New parameters: "+self.param1+" & "+self.param2
+            if emit:
+                self.unprocessed_action=max(self.unprocessed_action, 1)
 
 
 
