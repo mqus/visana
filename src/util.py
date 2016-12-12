@@ -43,3 +43,4 @@ def zoom_factory(ax,base_scale = 1.5):
     fig = ax.get_figure() # get the figure of interest
     # attach the call back
     fig.canvas.mpl_connect('scroll_event',zoom_fun)
+    #fig.canvas.mpl_connect('button_release_event', rel_fun)

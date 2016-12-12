@@ -43,8 +43,11 @@ class VisAnaGUI(tk.LabelFrame):
         self.dates_contained = self.build_contained_dict(self.ds.get_base_data().df())
 
         self.plot_tooltip=None
+        self.select_rect=None
 
         self.draw_frame(master)
+
+        self.mouse_pressed=None
 
         ## save time of last update to prevent too many
         ## updates when using sliders
@@ -103,9 +106,6 @@ class VisAnaGUI(tk.LabelFrame):
         self.f1 = tk.Label(self.filter, text="HIER STEHT Dann EIN FILTER!!!")
         self.filter.columnconfigure(1, weight=0)
         self.filter.columnconfigure(0, weight=5)
-
-#        self.timeline = tk.Label(self, text="HIER STEHT NE TIMELINE!!!", bg="#0066ff")
-#        self.timeline.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W),columnspan=5)
 
 
         self.projector = tk.LabelFrame(self, bg="red")
@@ -183,15 +183,19 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax = self.fig.add_subplot(111)
         self.ax.grid(True)
         self.canvas = FigureCanvasTkAgg(self.fig, self)
-        #self.canvas.mpl_connect('button_press_event', lambda event: self.canvas._tkcanvas.focus_set())
+
         self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+        self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+
         #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
 
         # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
-        self.ctbwidget=tk.Frame(self)
-        self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
-        self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+        #self.ctbwidget=tk.Frame(self)
+        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
 
         util.zoom_factory(self.ax)
 
@@ -208,21 +212,9 @@ class VisAnaGUI(tk.LabelFrame):
     def handle_aggregate_btn(self):
         self.aggregation_limit = int(self.noise_spin.get())
 
-        #if not self.is_aggregated:
-        #    self.ds.store_df(df=self.df, name="to_aggregate")
-
-        #self.ds.aggregate(out_table="aggregate", mode="AVG", limit=limit_val, in_table="to_aggregate")
-        #base_df = self.df
-        #self.df = self.ds.get_data(name="aggregate").df()
-
-
-        #self.display_data()
-        #self.draw_timeline(df=base_df)
         self.action_str = "Aggregated values: "+str(self.aggregation_limit)
 
-        #self.add_to_history(self.action_str)
         self.unprocessed_action=2
-        #self.is_aggregated = True
 
 
     #########
@@ -262,6 +254,7 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
+        print("params Changed!")
         self.param1 = self.param_list[self.param1box.curselection()[0]]
         self.param2 = self.param_list[self.param2box.curselection()[0]]
 
@@ -273,15 +266,15 @@ class VisAnaGUI(tk.LabelFrame):
     ###################
     # PLOT-EVENT HANDLER
 
-
+#TODO currently unused, but should be used to write zoom and pan events to the history
     def handle_changed_axes(self):
         self.clean_tooltip()
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_xlim()
 
-        text="Focus changed to: x=[{};{}] and y=[{};{}]".format(xlim[0], xlim[1], ylim[0], ylim[1])
+        text="Focus changed to: x=[{:.1f};{:.1f}] and y=[{:.1f};{:.1f}]".format(xlim[0], xlim[1], ylim[0], ylim[1])
         self.add_to_history(text)
-
+    ## is called by the plot to confirm if the mouseevent was inside/on a plotted line or a marker
     def handle_pick(self, line, mouseevent):
 
         if mouseevent.button == 1:
@@ -289,12 +282,56 @@ class VisAnaGUI(tk.LabelFrame):
         else:
             return False,dict()
 
+    ## is called to to do something when the mouse hovers over the plot and has changed its position.
+    ## if no mousebutton is pressed and no points were selected, a hover-tooltip is shown.
+    ## if the left button is pressed, (re-)draw the selection indicator
     def handle_hover(self, mouseevent):
-        isover, props = self.handle_mouse_event(mouseevent)
+        if not mouseevent.button ==1 and self.select_rect is None:
+            isover, props = self.handle_mouse_event(mouseevent)
 
-        if isover:
-            self.draw_tooltip(mouseevent, props["ind"])
+            if isover:
+                self.draw_tooltip(mouseevent, props["ind"])
 
+        elif mouseevent.button == 1:
+            xmin = min(mouseevent.xdata, self.mouse_pressed[0])
+            xmax = max(mouseevent.xdata, self.mouse_pressed[0])
+            ymin = min(mouseevent.ydata, self.mouse_pressed[1])
+            ymax = max(mouseevent.ydata, self.mouse_pressed[1])
+            bbox=(xmin, ymin, xmax, ymax)
+            self.clean_tooltip(True)
+            bbox2=self.ax.transData.transform(bbox)
+            c_height = self.canvas.figure.bbox.height
+            bbox3=(bbox2[0], c_height-bbox2[1], bbox2[2],c_height-bbox2[3])
+            self.select_rect = self.canvas.get_tk_widget().create_rectangle(bbox3, dash=".")
+
+    ## is called whenever a mousebutton is clicked while the mouse is over the plot.
+    ##  if the left button is pushed, we begin to draw a selection area
+    def handle_mouse_down(self, mouseevent):
+        if mouseevent.button == 1:
+            self.clean_tooltip(True)
+            self.mouse_pressed=(mouseevent.xdata, mouseevent.ydata)
+
+    ## is called whenever a mouse button is released while hovering over the plot
+    ## if the left button was pressed and there are points within the selection area, select those points and show a
+    ##  tooltip containing information about those selected points. If not, clean up.
+    def handle_mouse_up(self, mouseevent):
+        if mouseevent.button == 1:
+            xmin = min(mouseevent.xdata, self.mouse_pressed[0])
+            xmax = max(mouseevent.xdata, self.mouse_pressed[0])
+            ymin = min(mouseevent.ydata, self.mouse_pressed[1])
+            ymax = max(mouseevent.ydata, self.mouse_pressed[1])
+            if xmin == xmax and ymin == ymax:
+                self.clean_tooltip(True)
+            else:
+                self.ds.select("selected", self.param1, xmin, xmax, "show")
+                self.ds.select("selected", self.param2, ymin, ymax, "selected")
+                ind=self.df("selected").index.values
+                if len(ind)>0:
+                    text="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
+                    self.add_to_history(text)
+                    self.draw_tooltip(mouseevent,ind, True)
+                else:
+                    self.clean_tooltip(True)
 
     def handle_mouse_event(self, mouseevent, radius=5):
         """
@@ -318,11 +355,9 @@ class VisAnaGUI(tk.LabelFrame):
         if mouseevent.xdata is None:
             return False, dict()
 
-        #print("px,ydata",xdata, ydata)
-
         d = pd.np.sqrt((xdata - mousex)**2. + (ydata - mousey)**2.)
-        #print(d, mousex, mousey)
         ind = self.df("show").index.values[pd.np.nonzero(pd.np.less_equal(d, radius))[0]]
+
         if len(ind) >0:
             props = dict(ind=ind)
             return True, props
@@ -346,7 +381,8 @@ class VisAnaGUI(tk.LabelFrame):
                 text += '\n {}: \t{}'.format(col, cdata[ind[0]])
         else:
             text = selstr + "%s values:" % len(ind)
-            self.ds.select_ids("selected", ind, "show")
+            if not selected:
+                self.ds.select_ids("selected", ind, "show")
             self.ds.aggregate("sel_aggremin", "MIN", in_table="selected")
             self.ds.aggregate("sel_aggremax", "MAX", in_table="selected")
 
@@ -452,7 +488,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         if self.unprocessed_action>0 and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
-            #print("redraw data")
+            print("redraw data")
             ## simply block the very first update...
             ## (there might be prettier solutions)
             if self.ignore_start_trigger:
@@ -490,32 +526,33 @@ class VisAnaGUI(tk.LabelFrame):
             else:
                 self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="time-limited")
 
-        #try:
+        try:
             self.draw_data()
             #self.draw_timeline()
             self.add_to_history(self.action_str)
-        #except:
+        except:
 
-        #    pass
+            pass
         self.unprocessed_action=0
 
 
     ## update view with specified data
     def draw_data(self):
         #ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=self.line_picker)
-        self.clean_tooltip()
+        self.clean_tooltip(True)
         self.ax.clear()
         self.ax.grid(True)
         x=self.df("show")[self.param1]
         y=self.df("show")[self.param2]
-        self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,
-                                  picker=self.handle_pick)
+        self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)
         #self.ax.set_xlim(x.min(), x.max(), emit=False)
         #self.ax.set_ylim(y.min(), y.max(), emit=False)
         self.canvas.draw()
+        #self.canvas.
+        self.fig.tight_layout()
 
     #################
     # helper-functions
@@ -529,11 +566,14 @@ class VisAnaGUI(tk.LabelFrame):
         self.history.see("end")
 
     ## remove the tooltip if shown
-    def clean_tooltip(self):
+    def clean_tooltip(self, with_select_rect=False):
         if self.plot_tooltip is not None:
             self.canvas.get_tk_widget().delete(self.plot_tooltip)
             self.canvas.get_tk_widget().delete(self.plot_tooltip_rect)
             self.plot_tooltip = None
+        if with_select_rect and self.select_rect is not None:
+            self.canvas.get_tk_widget().delete(self.select_rect)
+            self.select_rect=None
 
     ## build a dictionary with 365 days as keys
     ## and boolean values for those days that
