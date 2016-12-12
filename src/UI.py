@@ -114,7 +114,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.history = tk.Text(self, width=45)
         self.history.grid(column=2, row=3, sticky=(tk.N, tk.E, tk.S), rowspan=2)
-        self.history.insert('end', "\n")
+        self.history.insert('end', "::LOG::\n")
 
         self.historyslider = tk.Scrollbar(self,orient=tk.VERTICAL, command=self.history.yview)
         self.historyslider.grid(column=3, row=3, sticky=(tk.N, tk.S), rowspan=2)
@@ -214,7 +214,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.tdvar.set("0")
         self.unprocessed_action=4
 
-
+        self.add_to_history("reset to basedata")
         self.action_str = "Show base data"
         #print("hi there, everyone!")
 
@@ -222,7 +222,7 @@ class VisAnaGUI(tk.LabelFrame):
     def handle_aggregate_btn(self):
         self.aggregation_limit = int(self.noise_spin.get())
 
-        self.action_str = "Aggregated values: "+str(self.aggregation_limit)
+        self.action_str = "Aggregated values: "+str(self.aggregation_limit)+"min"
 
         self.unprocessed_action=max(self.unprocessed_action, 3)
 
@@ -495,7 +495,7 @@ class VisAnaGUI(tk.LabelFrame):
         ax.scatter(days, [1]*len(days), c=values,
                    marker='|', s=300)#, fontsize=10)
         #fig.xt
-        hfmt = mdates.DateFormatter("%b '%y")
+        hfmt = mdates.DateFormatter("1. %b '%y")
         # fig.subplots_adjust(left=0.03, right=0.97, top=1)
 
         ax.xaxis.set_major_formatter(hfmt)
