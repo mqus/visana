@@ -185,7 +185,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
         self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
         self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
-
+        self.ax.callbacks.connect("xlim_changed", self.handle_view_change)
+        self.ax.callbacks.connect("ylim_changed", self.handle_view_change)
         #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
 
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
@@ -204,11 +205,14 @@ class VisAnaGUI(tk.LabelFrame):
     ## dummy method
     def reset_to_start(self):
         self.clean_tooltip(True)
-        self.param1box.select_set("Large")
-        self.param2box.select_set("Small")
+        #self.param1box.select_set(self.param_list.index("Large"))
+        #self.param2box.select_set(self.param_list.index("Small"))
         self.startSlider.set(0)
         self.endSlider.set(365)
-        self.var.set(0)
+        self.var.set("1")
+        self.handle_aggregate_btn()
+        self.tdvar.set("0")
+        self.unprocessed_action=4
 
 
         self.action_str = "Show base data"
@@ -230,6 +234,9 @@ class VisAnaGUI(tk.LabelFrame):
                             "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
                             "\n  RelHumidity<0 or RelHumidity>100"
         self.unprocessed_action=max(self.unprocessed_action, 4)
+
+    def handle_view_change(self,ax):
+        print("viewport changed to", ax.get_xlim(), ax.get_ylim())
 
     #########
     ## SLIDER METHODS
@@ -268,7 +275,6 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
-        print("params Changed!")
         self.param1 = self.param_list[self.param1box.curselection()[0]]
         self.param2 = self.param_list[self.param2box.curselection()[0]]
 
@@ -506,13 +512,13 @@ class VisAnaGUI(tk.LabelFrame):
         ax.get_yaxis().set_ticklabels([])
         fig.tight_layout(pad=0)
 
-        print(fig.get_figheight())
+        #print(fig.get_figheight())
         #fig.subplots_adjust(top=1, right=0.99)
 
         ## add to GUI
         self.timeline = FigureCanvasTkAgg(fig, self)
         self.timeline.get_tk_widget().grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W, tk.S),columnspan=5)
-        print("h:",self.timeline.figure.bbox.height)
+        #print("h:",self.timeline.figure.bbox.height)
 
     #####################
     # UPDATE-FUNCTIONS
@@ -526,7 +532,6 @@ class VisAnaGUI(tk.LabelFrame):
 
         if self.unprocessed_action>0 and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
-            print("redraw data")
             ## simply block the very first update...
             ## (there might be prettier solutions)
             if self.ignore_start_trigger:
@@ -539,7 +544,7 @@ class VisAnaGUI(tk.LabelFrame):
 
     """
      general data tasks:
-     base [-> apply sliders ->]
+     after_tidyup [-> apply sliders ->]
      time-limited [-> (don't) aggregate ->]
      show
 
@@ -599,8 +604,8 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)
-        #self.ax.set_xlim(x.min(), x.max(), emit=False)
-        #self.ax.set_ylim(y.min(), y.max(), emit=False)
+        self.ax.set_xlim(x.min(), x.max(), emit=False)
+        self.ax.set_ylim(y.min(), y.max(), emit=False)
         #self.canvas.
         self.fig.tight_layout(pad=0)
         self.canvas.draw()
