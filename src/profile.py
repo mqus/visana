@@ -121,7 +121,7 @@ for i in range(0, runCnt):
 	start=time.perf_counter()
 	curAggrConds = aggrConds[i]
 	#print(curConds)
-	ds.aggregate("aggro",curAggrConds[0],curAggrConds[1],limit=curAggrConds[2])
+    ds.aggregate("aggro", curAggrConds[0], limit=curAggrConds[2])
 	stop=time.perf_counter()
 	runtimes["AGGREGATE"].append((stop-start))
 	#print("aggr: " + str((stop-start)*1000) + "ms \tper 1k entries: " + str((stop-start)*1000*1000/size) + "ms.")

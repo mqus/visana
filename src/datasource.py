@@ -25,6 +25,10 @@ class DataSource:
 	def get_table_store(self):
 		return self.table_store
 
+	## returns if a labeled table exists
+	def exists(self,name):
+		return name in self.table_store
+
 	## construct base table with csv file at given path
 	def read_data(self,path):
 		self.table_store["base"]=DataTable(path)
@@ -32,19 +36,27 @@ class DataSource:
 	def pop_table(self,name):
 		self.table_store.pop(name)
 
+	## give in_table another alias out_table
+	def link(self, out_table, in_table="base"):
+		df = self.table_store[in_table].df()
+		## store 'copy' in new table
+		self.table_store[out_table] = DataTable(df=df)
+
 	## perform a selection on data
 	##	out_table: name of new table with results
 	##	attr_name: attribute for the selection
 	##	a: min-value for this attribute
 	##	b: max-value for this attribute
 	## 	in_table: table to perform the selection on
-	def select(self,out_table,attr_name,a,b,in_table="base"):
+	def select(self,out_table,attr_name,a=None,b=None,in_table="base"):
 		df = self.table_store[in_table].df()
 
 		## select the according tuples for these boundaries
 		## for the given attribute
-		df = df.loc[df[attr_name] >= a]
-		df = df.loc[df[attr_name] <= b]
+		if a is not None:
+			df = df.loc[df[attr_name] >= a]
+		if b is not None:
+			df = df.loc[df[attr_name] <= b]
 
 		## store results in new table
 		self.table_store[out_table] = DataTable(df=df)
@@ -55,11 +67,11 @@ class DataSource:
 	##	mode: aggregation mode of the other columns
 	## 	in_table: table to perform the projection on
 	def groupby(self,out_table,attr, mode,in_table="base", bydate=False):
-		df = self.table_store[in_table].df()
+		df = self.table_store[in_table].df() #type:pd.DataFrame
 		if bydate:
-			by=data[attr].dt.normalize()
+			by=df[attr].dt.normalize()
 		else:
-			by=data[attr]
+			by=df[attr]
 
 		grouped = df.groupby(by)
 
@@ -100,11 +112,10 @@ class DataSource:
 	##	attr_names: list of attributes to aggregate and keep in results
 	##	limit (or 'range'): only aggregate that many rows for each resulting row
 	## 	in_table: table to perform the aggregation on
-	def aggregate(self,out_table,mode,attr_names,limit=0,in_table="base"):
+	def aggregate(self, out_table, mode, limit=0, in_table="base"):
 		df = self.table_store[in_table].df() #type:pd.DataFrame
 		#new_df = pd.DataFrame(columns=attr_names)
 		## only view selected columns
-		df = df[attr_names]
 		data=dict() ## dictionary for results
 		## aggregate all rows in one step if limit is 0
 		if limit is 0:
@@ -115,8 +126,10 @@ class DataSource:
 			i=0
 			if attr == "MasterTime":
 				for value in values:
+					if i % limit == 0 and mode is "MIN":
+						data[attr].append(value)
 					i += 1
-					if i % limit == 0:
+					if i % limit == 0 and mode is not "MIN":
 						data[attr].append(value)
 
 			else:
@@ -128,7 +141,7 @@ class DataSource:
 				valid_cnt = 0
 				for value in values:
 					## update min, max and sum for each value
-					if i % limit == 0:
+					if i % limit == 0 or np.isnan(min):
 						min=value
 						max=value
 						sum=0
@@ -158,6 +171,14 @@ class DataSource:
 
 		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 		#print(table_store[out_table])
+
+	#select with multiple ids
+	def select_ids(self,out_table, ids, in_table="base"):
+		df = self.table_store[in_table].df()  # type:pd.DataFrame
+		df= df.loc[ids]
+		self.table_store[out_table] = DataTable(df=df)
+
+
 
 
 if __name__ == "__main__":
