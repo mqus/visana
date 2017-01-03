@@ -6,6 +6,7 @@ import datasource
 
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 from datetime import datetime
@@ -18,6 +19,18 @@ import util
 
 
 class VisAnaGUI(tk.LabelFrame):
+
+    #update levels, each level includes all lower ones
+    NOTHING=0
+    TIMELINE_SELECTION=1
+    TIMELINE_DAYSINPLOT=2
+    PLOT=3
+    PLOT_DATA=4
+    DATA_TIDYUP=5
+
+
+
+
     def __init__(self, master=None, ds=None):
 
         self.dates = []
@@ -56,7 +69,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.UPDATE_DELAY = 500
         ## was there an action triggering an update?
         # (0=no, 1=only the timeline, 2=axes and timeline, 3=with selection, 4 with tidyup)
-        self.unprocessed_action = 4
+        self.unprocessed_action = self.DATA_TIDYUP
         ## calls check_for_update() method after delay has passed
         self.after(self.UPDATE_DELAY, self.check_for_update)
         ## dummy variable to ignore first update. sliders trigger an
@@ -64,7 +77,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.ignore_start_trigger = True
 
         ## draw data at startup
-        self.update_plot()
+        self.update_data()
 
     #######################
     # UI CREATION
@@ -177,16 +190,14 @@ class VisAnaGUI(tk.LabelFrame):
 
     #add an empty plot to the GUI
     def create_plot(self):
-        self.fig = Figure(figsize=(5, 5), dpi=100)
-        self.ax = self.fig.add_subplot(111)
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+        self.ax = self.fig.add_subplot(111) #type:Axes
         self.ax.grid(True)
-        self.canvas = FigureCanvasTkAgg(self.fig, self)
+        self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
 
         self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
         self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
         self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
-        self.ax.callbacks.connect("xlim_changed", self.handle_view_change)
-        self.ax.callbacks.connect("ylim_changed", self.handle_view_change)
         #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
 
         self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
@@ -212,7 +223,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.var.set("1")
         self.handle_aggregate_btn()
         self.tdvar.set("0")
-        self.unprocessed_action=4
+        self.unprocessed_action=self.DATA_TIDYUP
 
         self.add_to_history("reset to basedata")
         self.action_str = "Show base data"
@@ -224,7 +235,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.action_str = "Aggregated values: "+str(self.aggregation_limit)+"min"
 
-        self.unprocessed_action=max(self.unprocessed_action, 3)
+        self.trigger_update(level=self.PLOT_DATA)
 
     def handle_tidy_up(self):
         if self.tdvar.get() is "0":
@@ -232,10 +243,13 @@ class VisAnaGUI(tk.LabelFrame):
         else:
             self.action_str="tidy up data, remove all points where:" \
                             "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
-                            "\n  RelHumidity<0 or RelHumidity>100"
-        self.unprocessed_action=max(self.unprocessed_action, 4)
+                            "\n  RelHumidity<0"
+        self.trigger_update(level=self.DATA_TIDYUP)
 
-    def handle_view_change(self,ax):
+    def handle_view_change(self,ax=None):
+        if ax is None:
+            ax=self.ax
+        self.handle_changed_axes()
         print("viewport changed to", ax.get_xlim(), ax.get_ylim())
 
     #########
@@ -269,7 +283,7 @@ class VisAnaGUI(tk.LabelFrame):
         endVal = self.endSlider.get()
         self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
         self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
-        self.unprocessed_action = max(self.unprocessed_action, 3)
+        self.trigger_update(level=self.PLOT_DATA)
         self.last_action = time()
         self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
@@ -279,7 +293,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param2 = self.param_list[self.param2box.curselection()[0]]
 
         self.action_str = "New parameters: " + self.param1 + " & " + self.param2
-        self.unprocessed_action= max(self.unprocessed_action, 2)
+        self.trigger_update(level=self.PLOT)
 
 
 
@@ -351,7 +365,7 @@ class VisAnaGUI(tk.LabelFrame):
                         text="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
                         self.add_to_history(text)
                         self.draw_tooltip(mouseevent,ind, True)
-                        self.unprocessed_action=max(self.unprocessed_action, 1)
+                        self.trigger_update(level=self.TIMELINE_SELECTION)
                     else:
                         self.clean_tooltip(True)
                 else:
@@ -530,7 +544,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         #self.check_listbox_changes()
 
-        if self.unprocessed_action>0 and \
+        if self.unprocessed_action>self.NOTHING and \
             (time() - self.last_action) > self.UPDATE_DELAY/1000:
             ## simply block the very first update...
             ## (there might be prettier solutions)
@@ -538,7 +552,7 @@ class VisAnaGUI(tk.LabelFrame):
                 self.ignore_start_trigger = False
             else:
                 ## update data
-                self.update_plot()
+                self.update_data()
         #print("checking for updates...")
         self.after(self.UPDATE_DELAY, self.check_for_update)
 
@@ -555,8 +569,8 @@ class VisAnaGUI(tk.LabelFrame):
 
     """
     ## draw new data according to current positions of date sliders and the aggregation limit
-    def update_plot(self):
-        if self.unprocessed_action >= 4:
+    def update_data(self):
+        if self.unprocessed_action >= self.DATA_TIDYUP:
             if self.tdvar.get() is "0":
                 self.ds.link("after_tidyup","base")
             else:
@@ -568,7 +582,7 @@ class VisAnaGUI(tk.LabelFrame):
                 #                  "\n\tOutdoorTemp>40 or Small<0 or Large<0 or " \
                 #                  "\n\tRelHumidity<0 or RelHumidity>100"
 
-        if self.unprocessed_action >=3:
+        if self.unprocessed_action >=self.PLOT_DATA:
             fromVal = self.startSlider.get()
             endVal = self.endSlider.get()
 
@@ -581,19 +595,17 @@ class VisAnaGUI(tk.LabelFrame):
                 self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="time-limited")
             self.ds.groupby("shown_dates","MasterTime", "COUNT", "show", bydate=True)
 #        try:
-        if self.unprocessed_action>=2:
-            self.draw_data()
-            self.draw_timeline()
-            self.add_to_history(self.action_str)
-        else:
-            self.draw_timeline()
+        if self.unprocessed_action>=self.PLOT:
+            self.draw_plot()
+        self.draw_timeline()
+        self.add_to_history(self.action_str)
 #        except:
 #            pass
-        self.unprocessed_action=0
+        self.unprocessed_action=self.NOTHING
 
 
     ## update view with specified data
-    def draw_data(self):
+    def draw_plot(self):
         #ax.plot(self.df[self.param1], self.df[self.param2], marker="o", linewidth=0, picker=self.line_picker)
         self.clean_tooltip(True)
         self.ax.clear()
@@ -606,6 +618,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.set_ylabel(self.param2)
         self.ax.set_xlim(x.min(), x.max(), emit=False)
         self.ax.set_ylim(y.min(), y.max(), emit=False)
+        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
         #self.canvas.
         self.fig.tight_layout(pad=0)
         self.canvas.draw()
@@ -631,7 +645,10 @@ class VisAnaGUI(tk.LabelFrame):
             self.canvas.get_tk_widget().delete(self.select_rect)
             self.select_rect=None
             if emit:
-                self.unprocessed_action=max(self.unprocessed_action, 1)
+                self.trigger_update(self.TIMELINE_SELECTION)
+
+    def trigger_update(self,level):
+        self.unprocessed_action = max(self.unprocessed_action,level)
 
 
 

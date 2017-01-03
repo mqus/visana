@@ -1,4 +1,8 @@
 #Status:
+- datasource angepasst:
+  - groupby-Funktion hinzugefügt(zB.: aggregiere Daten nach Datum)
+  - select
+
 - erster GUI-Prototyp fertig, er kann:
   - Einen Scatterplot 2er beliebiger Parameter darstellen
   - den Messzeitraum der dargestellten Punkte begrenzen
@@ -20,7 +24,12 @@
 - Unit-Tests
 - clean input-data
   - braucht Input von Benutzern (welche Fehler sollen wie behandelt werden?)
-  
+
+BIS FREITAG:
+- Focus-Änderung in Zeitleiste und History anzeigen
+
+
+
 # Git-Zugang:
 
 Ein detaillierter Fortschritt ist auf https://github.com/mqus/visana.git einsehbar.
