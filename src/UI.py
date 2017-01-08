@@ -258,7 +258,7 @@ class VisAnaGUI(tk.LabelFrame):
             self.action_str="hide regression"
         else:
             self.action_str="draw regression"
-        #self.trigger_update(level=self.DATA_TIDYUP)
+        self.trigger_update(level=self.PLOT)
 
     def handle_view_change(self,ax=None):
         if ax is None:
@@ -619,6 +619,7 @@ class VisAnaGUI(tk.LabelFrame):
 #        try:
         if self.unprocessed_action>=self.PLOT:
             self.draw_plot()
+
         self.draw_timeline()
         self.add_to_history(self.action_str)
 #        except:
@@ -648,7 +649,7 @@ class VisAnaGUI(tk.LabelFrame):
         #self.canvas.
         self.fig.tight_layout(pad=0)
 
-        if not (self.param1 is "MasterTime" or self.param2 is "MasterTime"):
+        if self.rgvar.get() is not "0" and not (self.param1 is "MasterTime" or self.param2 is "MasterTime"):
         	self.draw_regression()
         self.canvas.draw()
 
