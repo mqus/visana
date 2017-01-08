@@ -47,7 +47,7 @@ class VisAnaGUI(tk.LabelFrame):
         #self.df=ds.get_base_data().df()
 
         ## parameter variables for listboxes
-        self.param_list = ["Small", "Large", "OutdoorTemp","RelHumidity"]
+        self.param_list = ["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
         self.param2 = "Small"
         self.param1 = "Large"
         self.aggregation_limit=1
@@ -268,7 +268,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.handle_slider_update()
 
-    ## triggered by changing startslider value
+    ## triggered by changing endslider value
     def update_end(self, event):
         fromVal = self.startSlider.get()
         endVal = self.endSlider.get()
@@ -358,6 +358,12 @@ class VisAnaGUI(tk.LabelFrame):
                 self.clean_tooltip(True)
             else:
                 if mouseevent.button == 1:
+                    if self.param1 is "MasterTime":
+                    	xmin = mdates.num2date(xmin)
+                    	xmax = mdates.num2date(xmax)
+                    if self.param2 is "MasterTime":
+                    	ymin = mdates.num2date(ymin)
+                    	ymax = mdates.num2date(ymax)
                     self.ds.select("selected", self.param1, xmin, xmax, "show")
                     self.ds.select("selected", self.param2, ymin, ymax, "selected")
                     ind=self.df("selected").index.values
@@ -386,6 +392,8 @@ class VisAnaGUI(tk.LabelFrame):
 
         #print("PICKER")
         #print(mouseevent, vars(mouseevent))
+        if self.param1 is "MasterTime" or self.param2 is "MasterTime":
+        	return False,dict()
         xydata=self.ax.transData.transform(self.df("show")[[self.param1, self.param2]]).transpose()
         try:
             mxy= self.ax.transData.transform([mouseevent.xdata,mouseevent.ydata])
@@ -612,7 +620,10 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.grid(True)
         x=self.df("show")[self.param1]
         y=self.df("show")[self.param2]
-        self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+        if self.param1 is "MasterTime" or self.param2 is "MasterTime":
+        	self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
+        else:
+        	self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)
