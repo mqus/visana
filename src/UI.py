@@ -14,6 +14,7 @@ import pandas as pd
 from dateutil import rrule
 from time import time
 import util
+import numpy as np
 
 from sklearn.linear_model import LinearRegression
 
@@ -649,18 +650,18 @@ class VisAnaGUI(tk.LabelFrame):
         #self.canvas.
         self.fig.tight_layout(pad=0)
 
-        if self.rgvar.get() is not "0" and not (self.param1 is "MasterTime" or self.param2 is "MasterTime"):
+        if self.rgvar.get() is not "0" and not (self.param2 is "MasterTime"):
         	self.draw_regression()
         self.canvas.draw()
 
     def draw_regression(self):
-
         ## we need to remove rows with NaNs first
         completedf = self.df("show")
         completedf = completedf[pd.notnull(completedf[self.param1])]
         completedf = completedf[pd.notnull(completedf[self.param2])]
         if self.param1 is "MasterTime":
-        	pass #?? how to handle?
+        	completedf["delta_time"] = (completedf["MasterTime"] - completedf["MasterTime"].min()) / np.timedelta64(1, "m")
+        	X = completedf["delta_time"].to_frame()
         else:
         	X = completedf[self.param1].to_frame()
         y = completedf[self.param2].to_frame()
@@ -668,7 +669,10 @@ class VisAnaGUI(tk.LabelFrame):
         lr = LinearRegression()
         lr.fit(X,y)
         print(lr.coef_)
-        self.ax.plot(X, lr.predict(X), color="red")
+        if self.param1 is "MasterTime":
+        	self.ax.plot(completedf["MasterTime"], lr.predict(X), color="red")
+        else:
+        	self.ax.plot(X, lr.predict(X), color="red")
 
     #################
     # helper-functions
