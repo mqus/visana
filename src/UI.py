@@ -15,6 +15,8 @@ from dateutil import rrule
 from time import time
 import util
 
+from sklearn.linear_model import LinearRegression
+
 
 
 
@@ -116,6 +118,11 @@ class VisAnaGUI(tk.LabelFrame):
         self.tidy_up = tk.Checkbutton(self.toolbar, text='Tidy Up Data', command=self.handle_tidy_up,
                                       variable=self.tdvar)
         self.tidy_up.grid(column=2, row=0, sticky=(tk.W, tk.N))
+
+        self.rgvar = tk.StringVar(value="0")
+        self.regression = tk.Checkbutton(self.toolbar, text='Draw Regression', command=self.handle_regression,
+                                      variable=self.rgvar)
+        self.regression.grid(column=3, row=0, sticky=(tk.W, tk.N))
 
         self.projector = tk.LabelFrame(self, bg="red")
         self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
@@ -245,6 +252,13 @@ class VisAnaGUI(tk.LabelFrame):
                             "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
                             "\n  RelHumidity<0"
         self.trigger_update(level=self.DATA_TIDYUP)
+
+    def handle_regression(self):
+        if self.rgvar.get() is "0":
+            self.action_str="hide regression"
+        else:
+            self.action_str="draw regression"
+        #self.trigger_update(level=self.DATA_TIDYUP)
 
     def handle_view_change(self,ax=None):
         if ax is None:
@@ -633,7 +647,27 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
         #self.canvas.
         self.fig.tight_layout(pad=0)
+
+        if not (self.param1 is "MasterTime" or self.param2 is "MasterTime"):
+        	self.draw_regression()
         self.canvas.draw()
+
+    def draw_regression(self):
+
+        ## we need to remove rows with NaNs first
+        completedf = self.df("show")
+        completedf = completedf[pd.notnull(completedf[self.param1])]
+        completedf = completedf[pd.notnull(completedf[self.param2])]
+        if self.param1 is "MasterTime":
+        	pass #?? how to handle?
+        else:
+        	X = completedf[self.param1].to_frame()
+        y = completedf[self.param2].to_frame()
+
+        lr = LinearRegression()
+        lr.fit(X,y)
+        print(lr.coef_)
+        self.ax.plot(X, lr.predict(X), color="red")
 
     #################
     # helper-functions
