@@ -15,7 +15,8 @@
   - in einer editierbaren history den Verlauf anzeigen
   - ein bisschen weihnachtlich aussehen
   - sich selbst bereinigen
-  - alles wieder auf start stellen
+  - alles wieder auf Start stellen
+  - Regressionsgerade darstellen
 	
 	
 
@@ -24,8 +25,6 @@
 - Unit-Tests
 - clean input-data
   - braucht Input von Benutzern (welche Fehler sollen wie behandelt werden?)
-
-BIS FREITAG:
 - Focus-Änderung in Zeitleiste und History anzeigen
 
 

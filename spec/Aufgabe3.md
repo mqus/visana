@@ -1,3 +1,0 @@
-#Aufgabe 3: Zeitlicher Filter
-Die Daten können in einem beliebigen Zeitintervall dargestellt werden, auf den Tag genau. Hierfür enthält das GUI oben zwei Slider, die über alle Tage im Jahr laufen. Beim oberen Slider kann das Anfangsdatum, und beim unteren das Enddatum ausgewählt werden. Die Aktualisierung erfolgt automatisch, wobei eine kleine Verzögerung eingebaut ist, um nicht während des Einstellens des Sliders schon unnötige Updates zu machen.
-Die Darstellung wird für genau die Daten in diesem Zeitraum aktualisiert und die Achsenbeschriftungen usw. angepasst.
