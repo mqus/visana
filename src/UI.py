@@ -599,7 +599,7 @@ class VisAnaGUI(tk.LabelFrame):
             else:
                 self.ds.select("after_tidyup", "Large",a=0, in_table="base")
                 self.ds.select("after_tidyup", "OutdoorTemp",b=40, in_table="after_tidyup")
-                self.ds.select("after_tidyup", "RelHumidity",0,100, in_table="after_tidyup")
+                self.ds.select("after_tidyup", "RelHumidity",a=0, in_table="after_tidyup")
                 self.ds.select("after_tidyup", "Small",a=0, in_table="after_tidyup")
                 #self.action_str = "tidy up data, remove all points where:" \
                 #                  "\n\tOutdoorTemp>40 or Small<0 or Large<0 or " \
