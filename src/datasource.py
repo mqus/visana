@@ -3,8 +3,11 @@ import numpy as np
 
 from table import DataTable
 
+## attribute that contains timestamp
+TIME_ATTR="MasterTime"
 
 class DataSource:
+
 
 	def __init__(self):
 		self.table_store=dict()
@@ -32,6 +35,7 @@ class DataSource:
 	## construct base table with csv file at given path
 	def read_data(self,path):
 		self.table_store["base"]=DataTable(path)
+		self.table_store["base"] = DataTable(df=self.get_data("base").df().sort_values(by=TIME_ATTR))
 
 	def pop_table(self,name):
 		self.table_store.pop(name)
@@ -124,7 +128,7 @@ class DataSource:
 		for attr,values in df.iteritems():
 			data[attr]=list()
 			i=0
-			if attr == "MasterTime":
+			if attr == TIME_ATTR:
 				for value in values:
 					if i % limit == 0 and mode is "MIN":
 						data[attr].append(value)
