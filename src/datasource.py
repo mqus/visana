@@ -176,6 +176,21 @@ class DataSource:
 		self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 		#print(table_store[out_table])
 
+	def aggregateTime(self, out_table, mode, minutes=60*24, in_table='base'):
+		df = self.table_store[in_table].df() #type:pd.DataFrame
+
+		freq='{}Min'.format(minutes)
+		df.index = pd.DatetimeIndex(df[TIME_ATTR], copy=True)
+		by=pd.TimeGrouper(freq=freq)
+		grouped = df.groupby(by)#type:pd.DataFrameGroupBy
+		if mode == 'AVG':
+			out=grouped.mean()
+		if mode == 'MIN':
+			out=grouped.min()
+		out=grouped.max()
+
+		self.table_store[out_table] = DataTable(df=out)
+
 	#select with multiple ids
 	def select_ids(self,out_table, ids, in_table="base"):
 		df = self.table_store[in_table].df()  # type:pd.DataFrame
