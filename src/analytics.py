@@ -1,17 +1,17 @@
-from datasource import TIME_ATTR, GRAIN_COLS
+from datasource import TIME_ATTR, GRAIN_COLS, GRAIN_COLS2
 import pandas as pd
 from sklearn import cluster
 from matplotlib import pyplot
 import numpy as np
 
-def create_distributions(in_table, out_table, datasource, intervalsize=360):
+def create_distributions(in_table, out_table, datasource, intervalsize=60):
 	df = datasource.get_data(name=in_table).df()
 	## which columns to keep? 
 	df = df[[TIME_ATTR] + GRAIN_COLS]
 	## store column-reduced table
 	datasource.store_df(df=df, name="cluster_graincols")
 	## aggregate values in time intervals
-	datasource.aggregate(out_table="cluster_aggr", mode="AVG", limit=intervalsize, in_table="cluster_graincols")
+	datasource.aggregateTime(out_table="cluster_aggr", mode="AVG", minutes=intervalsize, in_table="cluster_graincols")
 	df = datasource.get_data(name="cluster_aggr").df()
 
 	## iterate through aggregated values,
@@ -51,17 +51,17 @@ def create_distributions(in_table, out_table, datasource, intervalsize=360):
 				data[TIME_ATTR].append(row[TIME_ATTR])
 
 	df=pd.DataFrame(data)
-	print(df.describe())
+	#print(df.describe())
 	datasource.store_df(df=pd.DataFrame(data), name="cluster_distr")
 	#self.table_store[out_table]=DataTable(df=pd.DataFrame(data))
 	#print(table_store[out_table])
-	calc_clusters("cluster_distr", datasource, k=2)
+	calc_clusters(in_table="cluster_distr", out_table="clustered" datasource=datasource, k=4)
 
-def calc_clusters(in_table, datasource, k):
+def calc_clusters(in_table, out_table, datasource, k):
 	print("CLUSTERING")
 	df = datasource.get_data(in_table).df()
 	kmeans = cluster.KMeans(n_clusters=k)
-	kmeans.fit(df[["Small", "Large"]])
+	kmeans.fit(df[GRAIN_COLS])
 
 	labels = kmeans.labels_
 	#print("labels: ")
@@ -69,23 +69,44 @@ def calc_clusters(in_table, datasource, k):
 	#print("labelsLEN: "+str(len(labels)))
 	#for i in labels:
 #		print(i)
-	df['labels'] = labels
+	df['clusterlabels'] = labels
 	#print(df.describe())
 	#print(df[TIME_ATTR])
 
 	centroids = kmeans.cluster_centers_
+
+	datasource.store_df(df=df, name=out_table)
+
+
 	#print("centroids: ")
 	#print(centroids)
+	debugprint="""
+	print(centroids)
 
-	pyplot.scatter(df["Small"], df["Large"])
+	firstcentroids = df.loc[df['clusterlabels'] == 0]
+	seccentroids = df.loc[df['clusterlabels'] == 1]
+	qcentroids = df.loc[df['clusterlabels'] == 2]
+	acentroids = df.loc[df['clusterlabels'] == 3]
+
+	firstindex = 0
+	secindex = 25
+	#pyplot.scatter(firstcentroids["Small"], firstcentroids["Large"], color="red")
+	#pyplot.scatter(seccentroids["Small"], seccentroids["Large"], color="blue")
+	pyplot.scatter(firstcentroids[GRAIN_COLS[firstindex]], firstcentroids[GRAIN_COLS[secindex]], color="red")
+	pyplot.scatter(seccentroids[GRAIN_COLS[firstindex]], seccentroids[GRAIN_COLS[secindex]], color="blue")
+	pyplot.scatter(qcentroids[GRAIN_COLS[firstindex]], qcentroids[GRAIN_COLS[secindex]], color="green")
+	pyplot.scatter(acentroids[GRAIN_COLS[firstindex]], acentroids[GRAIN_COLS[secindex]], color="yellow")
+
 	for i in range(k):
 	    # select only data observations with cluster label == i
 	    #ds = df[np.where(labels==i)]
 	    # plot the data observations
 	    #pyplot.plot(ds[:,0],ds[:,1],'o')
 	    # plot the centroids
-	    lines = pyplot.plot(centroids[i,0],centroids[i,1],'kx')
+	    lines = pyplot.plot(centroids[i,firstindex],centroids[i,secindex],'kx')
 	    # make the centroid x's bigger
 	    pyplot.setp(lines,ms=15.0)
 	    pyplot.setp(lines,mew=2.0)
 	pyplot.show()
+	"""
+	return centroids

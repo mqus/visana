@@ -1,0 +1,20 @@
+Tool - M4:
+Cluster-k einstellen
+Visualisierte Cluster auswählen mit Checkboxes
+Histogramm anzeigen
+- small multiples
+Cluster plotten für zwei beliebige Parameter
+Timeline für Cluster aktualisieren
+- Zeitintervall kleiner als Tag
+- farbig die Clusterzugehörigkeit kennzeichnen
+Timeline Interaktivität
+- Hover: Zeit anzeigen
+- Bei Cluster: Klick für spezifisches Intervall-Histogramm
+
+
+
+
+Daten:
+negative Staubwerte (->Häufigkeit?)
+NAs teilweise nur in letzter Staubspalte
+z.B. 9.10.14 21:58:00 Sehr hoher letzter Staubwert, davor&danach abwechselnd 0 und NA
