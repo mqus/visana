@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
+from Selector import Selector
+from tkinter.ttk import Combobox
 import matplotlib
 
 import datasource
@@ -34,6 +36,9 @@ class VisAnaGUI(tk.LabelFrame):
 
 
 
+
+
+
     def __init__(self, master=None, ds=None):
 
         self.dates = []
@@ -45,14 +50,18 @@ class VisAnaGUI(tk.LabelFrame):
 
         ## save data source
         self.ds = ds #type:datasource.DataSource
-        self.ds.groupby("all_days", "MasterTime", "COUNT","base", bydate=True)
+        self.ds.groupby("all_days", datasource.TIME_ATTR, "COUNT","base", bydate=True)
         #self.ds.link("show")
         #self.df=ds.get_base_data().df()
 
         ## parameter variables for listboxes
-        self.param_list = ["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
-        self.param2 = "Small"
-        self.param1 = "Large"
+        self.param_list = list(ds.get_data("base").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
+        #print("params:")
+        #print(self.param_list)
+        #print(list(self.param_list))
+        #print(self.param_list[1])
+        self.param2 = self.param_list[1]
+        self.param1 = self.param_list[2]
         self.aggregation_limit=1
 
         ## simple string to describe last action (for history)
@@ -115,6 +124,11 @@ class VisAnaGUI(tk.LabelFrame):
         self.reset_view_btn["command"] = self.reset_to_start
         self.reset_view_btn.grid(column=1, row=0, sticky=(tk.W, tk.N))
 
+        self.toggle_hist_btn = tk.Button(self.toolbar)
+        self.toggle_hist_btn["text"] = "Toggle History"
+        self.toggle_hist_btn["command"] = self.toggle_history
+        self.toggle_hist_btn.grid(column=4, row=0, sticky=(tk.W, tk.N))
+
         self.tdvar = tk.StringVar(value="0")
         self.tidy_up = tk.Checkbutton(self.toolbar, text='Tidy Up Data', command=self.handle_tidy_up,
                                       variable=self.tdvar)
@@ -125,53 +139,82 @@ class VisAnaGUI(tk.LabelFrame):
                                       variable=self.rgvar)
         self.regression.grid(column=3, row=0, sticky=(tk.W, tk.N))
 
-        self.projector = tk.LabelFrame(self, bg="red")
-        self.projector.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
+        self.left_sidebar = tk.Frame(self)
+        self.left_sidebar.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
 
-        self.paramlabel = tk.Label(self.projector, text="Choose Parameters")
-        self.paramlabel.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W))
+        self.projector = self.create_listboxes(self.left_sidebar)
+        self.projector.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W))
 
-        self.create_listboxes()
+        self.selector = Selector(self.left_sidebar, self.param_list, self.handle_view_change)
+        self.selector.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
+
+
+
+        self.history_text = "::LOG::\n"
+        self.create_history()
+
+        self.create_plot()
+
+    def create_history(self):
+        self.history_shown = True
 
         self.history = tk.Text(self, width=45)
         self.history.grid(column=2, row=3, sticky=(tk.N, tk.E, tk.S), rowspan=2)
-        self.history.insert('end', "::LOG::\n")
+        self.history.insert('end', self.history_text)
+
+        self.history.see("end")
 
         self.historyslider = tk.Scrollbar(self,orient=tk.VERTICAL, command=self.history.yview)
         self.historyslider.grid(column=3, row=3, sticky=(tk.N, tk.S), rowspan=2)
         self.history['yscrollcommand'] = self.historyslider.set
 
-        self.create_plot()
 
-        self.create_sliders()
 
-    def create_listboxes(self):
+    def create_listboxes(self, parent) -> tk.LabelFrame:
+        frame=tk.LabelFrame(parent, bg="red")
+
+
+        self.paramlabel = tk.Label(frame, text="Choose Parameters")
+        self.paramlabel.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W), columnspan=2)
+
         ## listboxes for parameter selection
-        self.param1box = Listbox(self.projector, exportselection=0)
-        for item in self.param_list:
-            self.param1box.insert("end", item)
-        param1_index = self.param_list.index(self.param1)
-        self.param1box.select_set(param1_index)
-        self.param1box.bind('<<ListboxSelect>>', self.handle_paramsChanged)
-        self.param1box.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
+        self.param1lbl = tk.Label(frame, text="X-Axis:")
+        self.param1lbl.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
+        self.param1var = StringVar()
+        self.param1var.set(self.param1)
+        self.param1box=Combobox(frame, textvariable=self.param1var, state="readonly",width=15)
+        self.param1box['values'] = self.param_list
+        self.param1box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
+        self.param1box.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.W))
 
-        self.param2box = Listbox(self.projector, exportselection=0)
-        for item in self.param_list:
-            self.param2box.insert("end", item)
-        param2_index = self.param_list.index(self.param2)
-        self.param2box.select_set(param2_index)
-        self.param2box.bind('<<ListboxSelect>>', self.handle_paramsChanged)
-        self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
 
-        self.var = StringVar(self.projector)
+        self.param1lbl = tk.Label(frame, text="Y-Axis:")
+        self.param1lbl.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
+        self.param2var = StringVar()
+        self.param2var.set(self.param2)
+        self.param2box = Combobox(frame, textvariable=self.param2var, state="readonly", width=15)
+        self.param2box['values'] = self.param_list
+        self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
+        self.param2box.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.W))
+
+#        self.param2box = Listbox(self.projector, exportselection=0)
+#        for item in self.param_list:
+#            self.param2box.insert("end", item)
+#        param2_index = self.param_list.index(self.param2)
+#        self.param2box.select_set(param2_index)
+#        self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
+#        self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
+
+        self.var = StringVar(frame)
         self.var.set(str(self.aggregation_limit))
-        self.noise_spin = Spinbox(self.projector, from_=1, to=1440, textvariable=self.var)
-        self.noise_spin.grid(column=0, row=3, sticky=(tk.N, tk.E, tk.W))
+        self.noise_spin = Spinbox(frame, from_=1, to=1440, textvariable=self.var ,width=4)
+        self.noise_spin.grid(column=0, row=3, sticky=(tk.E, tk.W))
 
-        self.testbutton = tk.Button(self.projector)
+        self.testbutton = tk.Button(frame)
         self.testbutton["text"] = "Aggregate values (minutes)"
         self.testbutton["command"] = self.handle_aggregate_btn
-        self.testbutton.grid(column=0, row=4, sticky=(tk.W, tk.N))
+        self.testbutton.grid(column=1, row=3, sticky=(tk.W, tk.N))
+        return frame
 
     ## add sliders to GUI
     def create_sliders(self):
@@ -226,8 +269,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
-        self.startSlider.set(0)
-        self.endSlider.set(365)
+#        self.startSlider.set(0)
+#        self.endSlider.set(365)
         self.var.set("1")
         self.handle_aggregate_btn()
         self.tdvar.set("0")
@@ -237,6 +280,17 @@ class VisAnaGUI(tk.LabelFrame):
         self.action_str = "Show base data"
         #print("hi there, everyone!")
 
+    def toggle_history(self):
+        if self.history_shown:
+            self.destroy_history()
+        else:
+            self.create_history()
+
+    def destroy_history(self):
+    	self.history_shown = False
+    	self.history.destroy()
+    	self.historyslider.destroy()
+    	#self.history_text = self.history.
 
     def handle_aggregate_btn(self):
         self.aggregation_limit = int(self.noise_spin.get())
@@ -304,8 +358,14 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
-        self.param1 = self.param_list[self.param1box.curselection()[0]]
-        self.param2 = self.param_list[self.param2box.curselection()[0]]
+        #self.param1 = self.param_list[self.param1box.curselection()[0]]
+        self.param1 = self.param1var.get()
+        self.param1box.select_clear()
+
+
+        self.param2 = self.param2var.get()
+        self.param2box.select_clear()
+#        self.param2 = self.param_list[self.param2box.curselection()[0]]
 
         self.action_str = "New parameters: " + self.param1 + " & " + self.param2
         self.trigger_update(level=self.PLOT)
@@ -315,7 +375,6 @@ class VisAnaGUI(tk.LabelFrame):
     ###################
     # PLOT-EVENT HANDLER
 
-#TODO currently unused, but should be used to write zoom and pan events to the history
     def handle_changed_axes(self):
         self.clean_tooltip()
         xlim = self.ax.get_xlim()
@@ -342,10 +401,17 @@ class VisAnaGUI(tk.LabelFrame):
                 self.draw_tooltip(mouseevent, props["ind"])
 
         elif mouseevent.button in [1,3]:
-            xmin = min(mouseevent.xdata, self.mouse_pressed[0])
-            xmax = max(mouseevent.xdata, self.mouse_pressed[0])
-            ymin = min(mouseevent.ydata, self.mouse_pressed[1])
-            ymax = max(mouseevent.ydata, self.mouse_pressed[1])
+        	## handle case if mouse is outside the canvas
+            if mouseevent.xdata == None:
+                xmin = self.mouse_pressed[0]
+                xmax = self.mouse_pressed[0]
+                ymin = self.mouse_pressed[1]
+                ymax = self.mouse_pressed[1]
+            else:
+                xmin = min(mouseevent.xdata, self.mouse_pressed[0])
+                xmax = max(mouseevent.xdata, self.mouse_pressed[0])
+                ymin = min(mouseevent.ydata, self.mouse_pressed[1])
+                ymax = max(mouseevent.ydata, self.mouse_pressed[1])
             bbox=(xmin, ymin, xmax, ymax)
             self.clean_tooltip(True, emit=False)
             bbox2=self.ax.transData.transform(bbox)
@@ -365,26 +431,33 @@ class VisAnaGUI(tk.LabelFrame):
     ##  tooltip containing information about those selected points. If not, clean up.
     def handle_mouse_up(self, mouseevent):
         if mouseevent.button in [1,3]:
-            xmin = min(mouseevent.xdata, self.mouse_pressed[0])
-            xmax = max(mouseevent.xdata, self.mouse_pressed[0])
-            ymin = min(mouseevent.ydata, self.mouse_pressed[1])
-            ymax = max(mouseevent.ydata, self.mouse_pressed[1])
+        	## handle case if mouse is outside the canvas
+            if mouseevent.xdata == None:
+                xmin = self.mouse_pressed[0]
+                xmax = self.mouse_pressed[0]
+                ymin = self.mouse_pressed[1]
+                ymax = self.mouse_pressed[1]
+            else:
+                xmin = min(mouseevent.xdata, self.mouse_pressed[0])
+                xmax = max(mouseevent.xdata, self.mouse_pressed[0])
+                ymin = min(mouseevent.ydata, self.mouse_pressed[1])
+                ymax = max(mouseevent.ydata, self.mouse_pressed[1])
             if xmin == xmax and ymin == ymax:
                 self.clean_tooltip(True)
             else:
                 if mouseevent.button == 1:
-                    if self.param1 is "MasterTime":
+                    if self.param1 == datasource.TIME_ATTR:
                     	xmin = mdates.num2date(xmin)
                     	xmax = mdates.num2date(xmax)
-                    if self.param2 is "MasterTime":
+                    if self.param2 == datasource.TIME_ATTR:
                     	ymin = mdates.num2date(ymin)
                     	ymax = mdates.num2date(ymax)
                     self.ds.select("selected", self.param1, xmin, xmax, "show")
                     self.ds.select("selected", self.param2, ymin, ymax, "selected")
                     ind=self.df("selected").index.values
                     if len(ind)>0:
-                        text="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
-                        self.add_to_history(text)
+                        self.action_str="Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})".format(xmin,ymin,xmax,ymax)
+                        #self.add_to_history(text)
                         self.draw_tooltip(mouseevent,ind, True)
                         self.trigger_update(level=self.TIMELINE_SELECTION)
                     else:
@@ -407,7 +480,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         #print("PICKER")
         #print(mouseevent, vars(mouseevent))
-        if self.param1 is "MasterTime" or self.param2 is "MasterTime":
+        if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
         	return False,dict()
         xydata=self.ax.transData.transform(self.df("show")[[self.param1, self.param2]]).transpose()
         try:
@@ -504,9 +577,17 @@ class VisAnaGUI(tk.LabelFrame):
         selected_dates=[]
         if self.select_rect is not None:
             print("b",self.ds.exists("selected"))
-            self.ds.groupby("selected_days", "MasterTime", "COUNT", "selected", bydate=True)
+            self.ds.groupby("selected_days", datasource.TIME_ATTR, "COUNT", "selected", bydate=True)
             selected_dates = self.df("selected_days").index.values
         shown_dates=self.df("shown_dates").index.values
+
+        base_dates=self.df("all_days").index.values
+
+        ## extract first and last date
+        start_date = base_dates[0]
+        end_date = base_dates[-1]
+        #days_diff = ((end_date-start_date) / np.timedelta64(1, 'D'))
+
         ## prepare data for timeline
         days = []
         values = []
@@ -538,7 +619,10 @@ class VisAnaGUI(tk.LabelFrame):
         ax.xaxis.set_major_formatter(hfmt)
         fig.autofmt_xdate()
         #ax.set_xticklabels(ax.xaxis.get_minorticklabels(), rotation=0)
-        ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2015,1,1,0,0,0)])
+
+        #ax.set_xlim([datetime(2014,1,1,0,0,0), datetime(2015,1,1,0,0,0)])
+        ax.set_xlim([start_date, end_date])
+
 
         ## everything after this is turning off stuff that's plotted by default
         ax.yaxis.set_visible(False)
@@ -604,27 +688,28 @@ class VisAnaGUI(tk.LabelFrame):
                 #self.action_str = "tidy up data, remove all points where:" \
                 #                  "\n\tOutdoorTemp>40 or Small<0 or Large<0 or " \
                 #                  "\n\tRelHumidity<0 or RelHumidity>100"
-                print("tidyup: {} zu {}".format(self.ds.get_data("base").get_count(),self.ds.get_data(
-                    "after_tidyup").get_count()))
 
         if self.unprocessed_action >=self.PLOT_DATA:
-            fromVal = self.startSlider.get()
-            endVal = self.endSlider.get()
+            #fromVal = self.startSlider.get()
+            #endVal = self.endSlider.get()
 
-            self.ds.select(out_table="time-limited", attr_name="MasterTime",
-                a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
+            self.ds.link("time-limited","after_tidyup")
+            #self.ds.select(out_table="time-limited", attr_name=datasource.TIME_ATTR,
+            #    a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
             #self.df = self.ds.get_data("time_filter").df()
             if self.aggregation_limit==1:
                 self.ds.link("show", "time-limited")
             else:
                 self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="time-limited")
-            self.ds.groupby("shown_dates","MasterTime", "COUNT", "show", bydate=True)
+            self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
 #        try:
         if self.unprocessed_action>=self.PLOT:
             self.draw_plot()
 
         self.draw_timeline()
-        self.add_to_history(self.action_str)
+        #print("add_to_history:",self.action_str)
+        if self.action_str is not None:
+        	self.add_to_history(self.action_str)
 #        except:
 #            pass
         self.unprocessed_action=self.NOTHING
@@ -638,9 +723,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.grid(True)
         x=self.df("show")[self.param1]
         y=self.df("show")[self.param2]
-        if self.param1 is "MasterTime" or self.param2 is "MasterTime":
-        	self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,
-        # picker=self.handle_pick)
+        if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
+        	self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
         else:
         	self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
@@ -653,7 +737,7 @@ class VisAnaGUI(tk.LabelFrame):
         #self.canvas.
         self.fig.tight_layout(pad=0)
 
-        if self.rgvar.get() is not "0" and not (self.param2 is "MasterTime"):
+        if self.rgvar.get() is not "0" and not (self.param2 == datasource.TIME_ATTR):
         	self.draw_regression()
         self.canvas.draw()
 
@@ -662,8 +746,8 @@ class VisAnaGUI(tk.LabelFrame):
         completedf = self.df("show")
         completedf = completedf[pd.notnull(completedf[self.param1])]
         completedf = completedf[pd.notnull(completedf[self.param2])]
-        if self.param1 is "MasterTime":
-        	completedf["delta_time"] = (completedf["MasterTime"] - completedf["MasterTime"].min()) / np.timedelta64(1, "m")
+        if self.param1 == datasource.TIME_ATTR:
+        	completedf["delta_time"] = (completedf[datasource.TIME_ATTR] - completedf[datasource.TIME_ATTR].min()) / np.timedelta64(1, "m")
         	X = completedf["delta_time"].to_frame()
         else:
         	X = completedf[self.param1].to_frame()
@@ -672,8 +756,8 @@ class VisAnaGUI(tk.LabelFrame):
         lr = LinearRegression()
         lr.fit(X,y)
         print(lr.coef_)
-        if self.param1 is "MasterTime":
-        	self.ax.plot(completedf["MasterTime"], lr.predict(X), color="red")
+        if self.param1 == datasource.TIME_ATTR:
+        	self.ax.plot(completedf[datasource.TIME_ATTR], lr.predict(X), color="red")
         else:
         	self.ax.plot(X, lr.predict(X), color="red")
 
@@ -685,8 +769,10 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## add line to history window
     def add_to_history(self, text):
-        self.history.insert('end', "\n" + text)  # + "\n")
-        self.history.see("end")
+        self.history_text += "\n" + text
+        if self.history_shown:
+        	self.history.insert('end', "\n" + text)  # + "\n")
+        	self.history.see("end")
 
     ## remove the tooltip if shown
     def clean_tooltip(self, with_select_rect=False, emit=True):
@@ -698,6 +784,7 @@ class VisAnaGUI(tk.LabelFrame):
             self.canvas.get_tk_widget().delete(self.select_rect)
             self.select_rect=None
             if emit:
+                self.action_str = None
                 self.trigger_update(self.TIMELINE_SELECTION)
 
     def trigger_update(self,level):
@@ -715,7 +802,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 ## read data
 ds = datasource.DataSource()
-ds.read_data("../data/dust-2014.dat")
+ds.read_data("../data/dust-32-grain-size-classes-2014.dat")
 print("read")
 #print(ds.get_base_data().df())
 root = tk.Tk()
