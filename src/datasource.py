@@ -5,6 +5,7 @@ from table import DataTable
 
 ## attribute that contains timestamp
 TIME_ATTR="MasterTime"
+GRAIN_COLS=["Small", "Large"]
 
 class DataSource:
 

@@ -3,6 +3,7 @@ from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
 from Selector import Selector
 from tkinter.ttk import Combobox
 import matplotlib
+import analytics
 
 import datasource
 
@@ -266,6 +267,7 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## dummy method
     def reset_to_start(self):
+        analytics.create_distributions("base", "out", self.ds)
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
@@ -802,7 +804,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 ## read data
 ds = datasource.DataSource()
-ds.read_data("../data/dust-32-grain-size-classes-2014.dat")
+ds.read_data("../data/dust-2014-v2.dat")
 print("read")
 #print(ds.get_base_data().df())
 root = tk.Tk()
