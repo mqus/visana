@@ -44,8 +44,8 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.dates = []
         for dt in rrule.rrule(rrule.DAILY,
-            dtstart=datetime(2014,1,1,0,0,0),
-            until=datetime(2015,1,1,0,0,0)):
+                              dtstart=datetime(2014,1,1,0,0,0),
+                              until=datetime(2015,1,1,0,0,0)):
             self.dates.append(dt.date())
 
 
@@ -130,14 +130,14 @@ class VisAnaGUI(tk.LabelFrame):
         self.toggle_hist_btn["command"] = self.toggle_history
         self.toggle_hist_btn.grid(column=4, row=0, sticky=(tk.W, tk.N))
 
-        self.tdvar = tk.StringVar(value="0")
-        self.tidy_up = tk.Checkbutton(self.toolbar, text='Tidy Up Data', command=self.handle_tidy_up,
-                                      variable=self.tdvar)
-        self.tidy_up.grid(column=2, row=0, sticky=(tk.W, tk.N))
+        #        self.tdvar = tk.StringVar(value="0")
+        #        self.tidy_up = tk.Checkbutton(self.toolbar, text='Tidy Up Data', command=self.handle_tidy_up,
+        #                                      variable=self.tdvar)
+        #        self.tidy_up.grid(column=2, row=0, sticky=(tk.W, tk.N))
 
         self.rgvar = tk.StringVar(value="0")
         self.regression = tk.Checkbutton(self.toolbar, text='Draw Regression', command=self.handle_regression,
-                                      variable=self.rgvar)
+                                         variable=self.rgvar)
         self.regression.grid(column=3, row=0, sticky=(tk.W, tk.N))
 
         self.left_sidebar = tk.Frame(self)
@@ -198,13 +198,13 @@ class VisAnaGUI(tk.LabelFrame):
         self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
         self.param2box.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.W))
 
-#        self.param2box = Listbox(self.projector, exportselection=0)
-#        for item in self.param_list:
-#            self.param2box.insert("end", item)
-#        param2_index = self.param_list.index(self.param2)
-#        self.param2box.select_set(param2_index)
-#        self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
-#        self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
+        #        self.param2box = Listbox(self.projector, exportselection=0)
+        #        for item in self.param_list:
+        #            self.param2box.insert("end", item)
+        #        param2_index = self.param_list.index(self.param2)
+        #        self.param2box.select_set(param2_index)
+        #        self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
+        #        self.param2box.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
 
         self.var = StringVar(frame)
         self.var.set(str(self.aggregation_limit))
@@ -271,11 +271,11 @@ class VisAnaGUI(tk.LabelFrame):
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
-#        self.startSlider.set(0)
-#        self.endSlider.set(365)
+        #        self.startSlider.set(0)
+        #        self.endSlider.set(365)
         self.var.set("1")
         self.handle_aggregate_btn()
-        self.tdvar.set("0")
+        #self.tdvar.set("0")
         self.unprocessed_action=self.DATA_TIDYUP
 
         self.add_to_history("reset to basedata")
@@ -289,10 +289,10 @@ class VisAnaGUI(tk.LabelFrame):
             self.create_history()
 
     def destroy_history(self):
-    	self.history_shown = False
-    	self.history.destroy()
-    	self.historyslider.destroy()
-    	#self.history_text = self.history.
+        self.history_shown = False
+        self.history.destroy()
+        self.historyslider.destroy()
+    #self.history_text = self.history.
 
     def handle_aggregate_btn(self):
         self.aggregation_limit = int(self.noise_spin.get())
@@ -301,14 +301,14 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.trigger_update(level=self.PLOT_DATA)
 
-    def handle_tidy_up(self):
-        if self.tdvar.get() is "0":
-            self.action_str="show raw data"
-        else:
-            self.action_str="tidy up data, remove all points where:" \
-                            "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
-                            "\n  RelHumidity<0"
-        self.trigger_update(level=self.DATA_TIDYUP)
+    #    def handle_tidy_up(self):
+    #        if self.tdvar.get() is "0":
+    #            self.action_str="show raw data"
+    #        else:
+    #            self.action_str="tidy up data, remove all points where:" \
+    #                            "\n  OutdoorTemp>40 or Small<0 or Large<0 or " \
+    #                            "\n  RelHumidity<0"
+    #        self.trigger_update(level=self.DATA_TIDYUP)
 
     def handle_regression(self):
         if self.rgvar.get() is "0":
@@ -367,7 +367,7 @@ class VisAnaGUI(tk.LabelFrame):
 
         self.param2 = self.param2var.get()
         self.param2box.select_clear()
-#        self.param2 = self.param_list[self.param2box.curselection()[0]]
+        #        self.param2 = self.param_list[self.param2box.curselection()[0]]
 
         self.action_str = "New parameters: " + self.param1 + " & " + self.param2
         self.trigger_update(level=self.PLOT)
@@ -403,7 +403,7 @@ class VisAnaGUI(tk.LabelFrame):
                 self.draw_tooltip(mouseevent, props["ind"])
 
         elif mouseevent.button in [1,3]:
-        	## handle case if mouse is outside the canvas
+            ## handle case if mouse is outside the canvas
             if mouseevent.xdata == None:
                 xmin = self.mouse_pressed[0]
                 xmax = self.mouse_pressed[0]
@@ -433,7 +433,7 @@ class VisAnaGUI(tk.LabelFrame):
     ##  tooltip containing information about those selected points. If not, clean up.
     def handle_mouse_up(self, mouseevent):
         if mouseevent.button in [1,3]:
-        	## handle case if mouse is outside the canvas
+            ## handle case if mouse is outside the canvas
             if mouseevent.xdata == None:
                 xmin = self.mouse_pressed[0]
                 xmax = self.mouse_pressed[0]
@@ -449,11 +449,11 @@ class VisAnaGUI(tk.LabelFrame):
             else:
                 if mouseevent.button == 1:
                     if self.param1 == datasource.TIME_ATTR:
-                    	xmin = mdates.num2date(xmin)
-                    	xmax = mdates.num2date(xmax)
+                        xmin = mdates.num2date(xmin)
+                        xmax = mdates.num2date(xmax)
                     if self.param2 == datasource.TIME_ATTR:
-                    	ymin = mdates.num2date(ymin)
-                    	ymax = mdates.num2date(ymax)
+                        ymin = mdates.num2date(ymin)
+                        ymax = mdates.num2date(ymax)
                     self.ds.select("selected", self.param1, xmin, xmax, "show")
                     self.ds.select("selected", self.param2, ymin, ymax, "selected")
                     ind=self.df("selected").index.values
@@ -483,7 +483,7 @@ class VisAnaGUI(tk.LabelFrame):
         #print("PICKER")
         #print(mouseevent, vars(mouseevent))
         if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
-        	return False,dict()
+            return False,dict()
         xydata=self.ax.transData.transform(self.df("show")[[self.param1, self.param2]]).transpose()
         try:
             mxy= self.ax.transData.transform([mouseevent.xdata,mouseevent.ydata])
@@ -602,7 +602,7 @@ class VisAnaGUI(tk.LabelFrame):
                 if day in shown_dates:
                     values.append("blue")
                     if day in selected_dates:
-                    #if random() < 0.05:
+                        #if random() < 0.05:
                         values.append("red")
                 else:
                     values.append("lightskyblue")
@@ -654,7 +654,7 @@ class VisAnaGUI(tk.LabelFrame):
         #self.check_listbox_changes()
 
         if self.unprocessed_action>self.NOTHING and \
-            (time() - self.last_action) > self.UPDATE_DELAY/1000:
+                        (time() - self.last_action) > self.UPDATE_DELAY/1000:
             ## simply block the very first update...
             ## (there might be prettier solutions)
             if self.ignore_start_trigger:
@@ -679,14 +679,14 @@ class VisAnaGUI(tk.LabelFrame):
     """
     ## draw new data according to current positions of date sliders and the aggregation limit
     def update_data(self):
-        if self.unprocessed_action >= self.DATA_TIDYUP:
-            if self.tdvar.get() is "0":
-                self.ds.link("after_tidyup","base")
-            else:
-                self.ds.select("after_tidyup", "Large",a=0, in_table="base")
-                self.ds.select("after_tidyup", "OutdoorTemp",b=40, in_table="after_tidyup")
-                self.ds.select("after_tidyup", "RelHumidity",a=0, in_table="after_tidyup")
-                self.ds.select("after_tidyup", "Small",a=0, in_table="after_tidyup")
+        #if self.unprocessed_action >= self.DATA_TIDYUP:
+            #if self.tdvar.get() is "0":
+            #    self.ds.link("after_tidyup","base")
+            #else:
+            #    self.ds.select("after_tidyup", "Large",a=0, in_table="base")
+            #    self.ds.select("after_tidyup", "OutdoorTemp",b=40, in_table="after_tidyup")
+            #    self.ds.select("after_tidyup", "RelHumidity",a=0, in_table="after_tidyup")
+            #    self.ds.select("after_tidyup", "Small",a=0, in_table="after_tidyup")
                 #self.action_str = "tidy up data, remove all points where:" \
                 #                  "\n\tOutdoorTemp>40 or Small<0 or Large<0 or " \
                 #                  "\n\tRelHumidity<0 or RelHumidity>100"
@@ -695,25 +695,25 @@ class VisAnaGUI(tk.LabelFrame):
             #fromVal = self.startSlider.get()
             #endVal = self.endSlider.get()
 
-            self.ds.link("time-limited","after_tidyup")
+            #self.ds.link("time-limited","after_tidyup")
             #self.ds.select(out_table="time-limited", attr_name=datasource.TIME_ATTR,
             #    a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
             #self.df = self.ds.get_data("time_filter").df()
             if self.aggregation_limit==1:
-                self.ds.link("show", "time-limited")
+                self.ds.link("show", "base")
             else:
-                self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="time-limited")
+                self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="base")
             self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
-#        try:
+        #        try:
         if self.unprocessed_action>=self.PLOT:
             self.draw_plot()
 
         self.draw_timeline()
         #print("add_to_history:",self.action_str)
         if self.action_str is not None:
-        	self.add_to_history(self.action_str)
-#        except:
-#            pass
+            self.add_to_history(self.action_str)
+        #        except:
+        #            pass
         self.unprocessed_action=self.NOTHING
 
 
@@ -726,9 +726,9 @@ class VisAnaGUI(tk.LabelFrame):
         x=self.df("show")[self.param1]
         y=self.df("show")[self.param2]
         if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
-        	self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
+            self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
         else:
-        	self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+            self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)
@@ -740,7 +740,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.fig.tight_layout(pad=0)
 
         if self.rgvar.get() is not "0" and not (self.param2 == datasource.TIME_ATTR):
-        	self.draw_regression()
+            self.draw_regression()
         self.canvas.draw()
 
     def draw_regression(self):
@@ -749,19 +749,19 @@ class VisAnaGUI(tk.LabelFrame):
         completedf = completedf[pd.notnull(completedf[self.param1])]
         completedf = completedf[pd.notnull(completedf[self.param2])]
         if self.param1 == datasource.TIME_ATTR:
-        	completedf["delta_time"] = (completedf[datasource.TIME_ATTR] - completedf[datasource.TIME_ATTR].min()) / np.timedelta64(1, "m")
-        	X = completedf["delta_time"].to_frame()
+            completedf["delta_time"] = (completedf[datasource.TIME_ATTR] - completedf[datasource.TIME_ATTR].min()) / np.timedelta64(1, "m")
+            X = completedf["delta_time"].to_frame()
         else:
-        	X = completedf[self.param1].to_frame()
+            X = completedf[self.param1].to_frame()
         y = completedf[self.param2].to_frame()
 
         lr = LinearRegression()
         lr.fit(X,y)
         print(lr.coef_)
         if self.param1 == datasource.TIME_ATTR:
-        	self.ax.plot(completedf[datasource.TIME_ATTR], lr.predict(X), color="red")
+            self.ax.plot(completedf[datasource.TIME_ATTR], lr.predict(X), color="red")
         else:
-        	self.ax.plot(X, lr.predict(X), color="red")
+            self.ax.plot(X, lr.predict(X), color="red")
 
     #################
     # helper-functions
@@ -773,8 +773,8 @@ class VisAnaGUI(tk.LabelFrame):
     def add_to_history(self, text):
         self.history_text += "\n" + text
         if self.history_shown:
-        	self.history.insert('end', "\n" + text)  # + "\n")
-        	self.history.see("end")
+            self.history.insert('end', "\n" + text)  # + "\n")
+            self.history.see("end")
 
     ## remove the tooltip if shown
     def clean_tooltip(self, with_select_rect=False, emit=True):
