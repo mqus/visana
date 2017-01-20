@@ -42,11 +42,11 @@ class VisAnaGUI(tk.LabelFrame):
 
     def __init__(self, master=None, ds=None):
 
-        self.dates = []
-        for dt in rrule.rrule(rrule.DAILY,
-                              dtstart=datetime(2014,1,1,0,0,0),
-                              until=datetime(2015,1,1,0,0,0)):
-            self.dates.append(dt.date())
+        #self.dates = []
+        #for dt in rrule.rrule(rrule.DAILY,
+        #                      dtstart=datetime(2014,1,1,0,0,0),
+        #                      until=datetime(2015,1,1,0,0,0)):
+        #    self.dates.append(dt.date())
 
 
         ## save data source
@@ -349,14 +349,14 @@ class VisAnaGUI(tk.LabelFrame):
         self.handle_slider_update()
 
     ## handle data update event, i.e. a slider changed.
-    def handle_slider_update(self):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
-        self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
-        self.trigger_update(level=self.PLOT_DATA)
-        self.last_action = time()
-        self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
+    #def handle_slider_update(self):
+    #    fromVal = self.startSlider.get()
+    #    endVal = self.endSlider.get()
+    #    self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
+    #    self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
+    #    self.trigger_update(level=self.PLOT_DATA)
+    #    self.last_action = time()
+    #    self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):

@@ -36,7 +36,7 @@ class DataSource:
 	## construct base table with csv file at given path
 	def read_data(self,path):
 		self.table_store["base"]=DataTable(path)
-		self.table_store["base"] = DataTable(df=self.get_data("base").df().sort_values(by=TIME_ATTR))
+		#self.table_store["base"] = DataTable(df=self.get_data("base").df().sort_values(by=TIME_ATTR))
 
 	def pop_table(self,name):
 		self.table_store.pop(name)
@@ -71,7 +71,7 @@ class DataSource:
 	##	attr: attribute or list of attributes to group by
 	##	mode: aggregation mode of the other columns
 	## 	in_table: table to perform the projection on
-	def groupby(self,out_table,attr, mode,in_table="base", bydate=False):
+	def groupby2(self,out_table,attr, mode,in_table="base", bydate=False):
 		df = self.table_store[in_table].df() #type:pd.DataFrame
 		if bydate:
 			by=df[attr].dt.normalize()
@@ -181,14 +181,17 @@ class DataSource:
 		df = self.table_store[in_table].df() #type:pd.DataFrame
 
 		freq='{}Min'.format(minutes)
-		df.index = pd.DatetimeIndex(df[TIME_ATTR], copy=True)
+#		df.index = pd.DatetimeIndex(df[TIME_ATTR], copy=True)
 		by=pd.TimeGrouper(freq=freq)
 		grouped = df.groupby(by)#type:pd.DataFrameGroupBy
-		if mode == 'AVG':
+		if mode == 'COUNT':
+			out=grouped.count()
+		elif mode == 'AVG':
 			out=grouped.mean()
-		if mode == 'MIN':
+		elif mode == 'MIN':
 			out=grouped.min()
-		out=grouped.max()
+		else:
+			out=grouped.max()
 
 		self.table_store[out_table] = DataTable(df=out)
 

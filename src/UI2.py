@@ -41,16 +41,18 @@ class VisAnaGUI(tk.LabelFrame):
 
     def __init__(self, master=None, ds=None):
 
-        self.dates = []
-        for dt in rrule.rrule(rrule.DAILY,
-                              dtstart=datetime(2014,1,1,0,0,0),
-                              until=datetime(2015,1,1,0,0,0)):
-            self.dates.append(dt.date())
-
+        #self.dates = []
+        #for dt in rrule.rrule(rrule.DAILY,
+        #                      dtstart=datetime(2014,1,1,0,0,0),
+        #                      until=datetime(2015,1,1,0,0,0)):
+        #    self.dates.append(dt.date())
+        self.mininterval=60
 
         ## save data source
         self.ds = ds #type:datasource.DataSource
-        self.ds.groupby("all_days", datasource.TIME_ATTR, "COUNT","base", bydate=True)
+        # self.ds.groupby("all_days", datasource.TIME_ATTR, "COUNT","base", bydate=True)
+        #self.ds.aggregateTime("all_days", "COUNT",60,"base")
+        # self.ds.aggregateTime("all_days", "COUNT",24*60,"base")
         #self.ds.link("show")
         #self.df=ds.get_base_data().df()
 
@@ -216,28 +218,28 @@ class VisAnaGUI(tk.LabelFrame):
         self.testbutton.grid(column=1, row=3, sticky=(tk.W, tk.N))
         return frame
 
-    ## add sliders to GUI
-    def create_sliders(self):
-        ## init sliders
-
-        #self.filter = tk.LabelFrame(self, bg="#0066ff")
-        self.filter = tk.LabelFrame(self, bg="red")
-        self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
-        self.filter.columnconfigure(1, weight=1)
-        self.filter.columnconfigure(0, weight=0)
-
-        self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_start)
-        self.startSlider.set(0)
-        self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_end)
-        self.endSlider.set(365)
-
-        ## add sliders and labels to GUI
-        self.startSlider.grid(column=1, row=0, sticky=(tk.W, tk.N, tk.E))
-        self.startlabel = tk.Label(self.filter, text="FROM \tVALUE")
-        self.startlabel.grid(column=0, row=0, sticky=(tk.W))
-        self.endSlider.grid(column=1, row=1, sticky=(tk.W, tk.S, tk.E))
-        self.endlabel = tk.Label(self.filter, text="TO \tVALUE")
-        self.endlabel.grid(column=0, row=1, sticky=(tk.W))
+    # ## add sliders to GUI
+    # def create_sliders(self):
+    #     ## init sliders
+    #
+    #     #self.filter = tk.LabelFrame(self, bg="#0066ff")
+    #     self.filter = tk.LabelFrame(self, bg="red")
+    #     self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+    #     self.filter.columnconfigure(1, weight=1)
+    #     self.filter.columnconfigure(0, weight=0)
+    #
+    #     self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_start)
+    #     self.startSlider.set(0)
+    #     self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_end)
+    #     self.endSlider.set(365)
+    #
+    #     ## add sliders and labels to GUI
+    #     self.startSlider.grid(column=1, row=0, sticky=(tk.W, tk.N, tk.E))
+    #     self.startlabel = tk.Label(self.filter, text="FROM \tVALUE")
+    #     self.startlabel.grid(column=0, row=0, sticky=(tk.W))
+    #     self.endSlider.grid(column=1, row=1, sticky=(tk.W, tk.S, tk.E))
+    #     self.endlabel = tk.Label(self.filter, text="TO \tVALUE")
+    #     self.endlabel.grid(column=0, row=1, sticky=(tk.W))
 
     #add an empty plot to the GUI
     def create_plot(self):
@@ -328,33 +330,33 @@ class VisAnaGUI(tk.LabelFrame):
     ## the first or second slider
     #########
 
-    ## triggered by changing startslider value
-    def update_start(self, event):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        if endVal < fromVal:
-            self.endSlider.set(fromVal)
-
-        self.handle_slider_update()
-
-    ## triggered by changing endslider value
-    def update_end(self, event):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        if endVal < fromVal:
-            self.startSlider.set(endVal)
-
-        self.handle_slider_update()
-
-    ## handle data update event, i.e. a slider changed.
-    def handle_slider_update(self):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
-        self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
-        self.trigger_update(level=self.PLOT_DATA)
-        self.last_action = time()
-        self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
+    # ## triggered by changing startslider value
+    # def update_start(self, event):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     if endVal < fromVal:
+    #         self.endSlider.set(fromVal)
+    #
+    #     self.handle_slider_update()
+    #
+    # ## triggered by changing endslider value
+    # def update_end(self, event):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     if endVal < fromVal:
+    #         self.startSlider.set(endVal)
+    #
+    #     self.handle_slider_update()
+    #
+    # ## handle data update event, i.e. a slider changed.
+    # def handle_slider_update(self):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
+    #     self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
+    #     self.trigger_update(level=self.PLOT_DATA)
+    #     self.last_action = time()
+    #     self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
@@ -573,11 +575,17 @@ class VisAnaGUI(tk.LabelFrame):
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
         #shown_dates = self.build_contained_dict(df)
+        if self.aggregation_limit <= 1:
+            self.ds.aggregateTime("all_days", "COUNT", self.mininterval, "base")
+        else:
+            self.ds.aggregateTime("all_days", "COUNT", self.aggregation_limit, "base")
 
         selected_dates=[]
         if self.select_rect is not None:
             print("b",self.ds.exists("selected"))
-            self.ds.groupby("selected_days", datasource.TIME_ATTR, "COUNT", "selected", bydate=True)
+            #self.ds.groupby2("selected_days", datasource.TIME_ATTR, "COUNT", "selected", bydate=True)
+            #self.ds.aggregateTime("selected_days", "COUNT",24*60, "selected")
+            self.ds.aggregateTime("selected_days", "COUNT",1, "selected")
             selected_dates = self.df("selected_days").index.values
         shown_dates=self.df("shown_dates").index.values
 
@@ -592,14 +600,16 @@ class VisAnaGUI(tk.LabelFrame):
         days = []
         values = []
 
-        for day in self.df("all_days").index.values:
-            if self.df("all_days")[self.param1][day]>0 and self.df("all_days")[self.param2][day]>0:
-                days.append(day)
+        #self.df("all_days").
+        for date in self.df("all_days").index.values:
+            self.df("all_days")
+            if self.df("all_days")[self.param1][date]>0 and self.df("all_days")[self.param2][date]>0:
+                days.append(date)
                 ##if random() < 0.01:
                 #if self.dates[self.startSlider.get()] <= day < self.dates[self.endSlider.get()]:
-                if day in shown_dates:
+                if date in shown_dates:
                     values.append("blue")
-                    if day in selected_dates:
+                    if date in selected_dates:
                         #if random() < 0.05:
                         values.append("red")
                 else:
@@ -702,7 +712,9 @@ class VisAnaGUI(tk.LabelFrame):
             else:
                 self.ds.aggregateTime(out_table="show", mode="AVG", minutes=self.aggregation_limit, in_table="base")
                 #self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="base")
-            self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
+            #self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
+            self.ds.aggregateTime("shown_dates","COUNT", self.aggregation_limit, in_table="base")
+            #self.ds.aggregateTime("shown_dates","COUNT", 24*60,"show")
         #        try:
         if self.unprocessed_action>=self.PLOT:
             self.draw_plot()
