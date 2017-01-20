@@ -804,7 +804,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 ## read data
 ds = datasource.DataSource()
-ds.read_data("../data/dust-2014-v2.dat")
+ds.read_data("../data/dust-32-grain-size-classes-2014.dat")
 print("read")
 #print(ds.get_base_data().df())
 root = tk.Tk()
