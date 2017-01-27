@@ -68,17 +68,44 @@ def calc_clusters(in_table, out_table, datasource, k):
     kmeans = cluster.KMeans(n_clusters=k)
     kmeans.fit(df[GRAIN_COLS])
 
+    cent_map = {}
+    centroids = kmeans.cluster_centers_
+    temp_cent_order = []
+    for c in range(0, len(centroids)):
+        t = [c, centroids[c, 0]]
+        temp_cent_order.append(t)
+
+    print(temp_cent_order)
+    cent_order = sorted(temp_cent_order, key=lambda x:x[1], reverse=True)
+    for c in range(0, len(centroids)):
+        cent_map[temp_cent_order[c][0]] = cent_order[c][0]
+    print(cent_order)
+    print(cent_map)
+
+    newcentroids = []
+    for c in range(0, len(centroids)):
+        newcentroids.append(centroids[cent_order[c][0]])
+    print(np.asarray(newcentroids))
+
+
     labels = kmeans.labels_
+    newlabels = []
+    for label in labels:
+        newlabels.append(cent_map[label])
+
+    print(type(labels))
+    print(type(np.asarray(newlabels)))
+    #print(labels)
+    #print(newlabels)
     #print("labels: ")
     #print(labels)
     #print("labelsLEN: "+str(len(labels)))
     #for i in labels:
 #       print(i)
-    df['clusterlabels'] = labels
+    df['clusterlabels'] = newlabels
     #print(df.describe())
     #print(df[TIME_ATTR])
 
-    centroids = kmeans.cluster_centers_
 
     datasource.store_df(df=df, name=out_table)
 
@@ -114,4 +141,4 @@ def calc_clusters(in_table, out_table, datasource, k):
         pyplot.setp(lines,mew=2.0)
     pyplot.show()
     """
-    return centroids
+    return newcentroids

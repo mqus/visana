@@ -31,6 +31,7 @@ class VisAnaGUI(tk.LabelFrame):
     ANALYTICS_MODE = 11
     ## constants for shown cluster plot
     SMALL_MULTIPLES = 20
+    SMALL_HISTOS = 21
 
     #update levels, each level includes all lower ones
     NOTHING=0
@@ -40,7 +41,7 @@ class VisAnaGUI(tk.LabelFrame):
     PLOT_DATA=4
     DATA_TIDYUP=5
 
-
+    COLORS=["#1F77B4", "#FF7F0E", "#2CA02C", "#d62728", "#9467BD", "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF"]
 
 
 
@@ -292,6 +293,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 
         self.mode = self.ANALYTICS_MODE
+        self.plot_type = self.SMALL_MULTIPLES
         print("change mode to ",self.mode)
 
         ## TODO: might need to be changed?!
@@ -757,8 +759,13 @@ class VisAnaGUI(tk.LabelFrame):
                 print("draw normal plots")
                 self.draw_plot()
             elif self.mode == self.ANALYTICS_MODE:
-                print("draw multiple plots")
-                self.create_multiple_plots()
+                print("draw cluster plots")
+                if self.plot_type == self.SMALL_MULTIPLES:
+                    print("\tdraw small multiples")
+                    self.create_multiple_plots()
+                elif self.plot_type == self.SMALL_HISTOS:
+                    print("\tdraw small histograms")
+                    self.create_distr_plots()
 
         self.draw_timeline()
         #print("add_to_history:",self.action_str)
@@ -767,6 +774,63 @@ class VisAnaGUI(tk.LabelFrame):
         #        except:
         #            pass
         self.unprocessed_action=self.NOTHING
+
+    def create_distr_plots(self):
+        self.clean_tooltip(True)
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+        self.ax = self.fig.add_subplot(111) #type:Axes
+
+        #subplot_num = 0
+        print(self.centroids)
+        y_pos = np.arange(len(datasource.GRAIN_COLS))
+        print(y_pos)
+        width = 0.95/self.cluster_k
+        #colors = ["#d62728", "blue", "green", "brown"]
+        for c in range(0, self.cluster_k):
+            #subplot_num += 1
+            ystdev = []
+            one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == c]
+
+            for i in range(0, len(datasource.GRAIN_COLS)):
+                col = one_value_cluster[self.c_param_list[i]]
+                stdev = np.std(col)
+                ystdev.append(stdev)
+
+            cen = [self.centroids[c][i] for i in range(0, len(self.c_param_list))]
+
+            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=self.COLORS[c], ecolor="black", yerr=ystdev)
+        self.ax.grid(True)
+        #self.ax.set_xticklabels
+        #self.ax.set_ylim(0, 1, emit=False)
+        max_y_val = max(map(max, self.centroids))
+        self.ax.set_ylim(0, max_y_val+0.1, emit=False)
+
+        self.ax.set_xticks(y_pos + width / 4)
+        self.ax.set_xticklabels(datasource.GRAIN_COLS)
+
+        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+        self.ax.callbacks.connect('ylim_changed', self.handle_view_change) 
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
+
+        #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        #self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+        #self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+
+        # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
+        #self.ctbwidget=tk.Frame(self)
+        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+
+        util.zoom_factory(self.ax)
+
+        self.fig.tight_layout(pad=0)
+        self.canvas.draw()
+
+        print("DISTRIBUTIONS PLOTTED")
 
 
     #add an empty plot to the GUI
@@ -777,6 +841,10 @@ class VisAnaGUI(tk.LabelFrame):
         param_combos = []
         subplot_num = 0
         paraLen = len(self.c_param_list)
+        axarr = [[]]
+        dummy = [[]]
+        sharey = {}
+
         for qi in range(0, paraLen):
             q = self.c_param_list[qi]
             #subplot_num = ((subplot_num%10)*10)+111
@@ -785,31 +853,51 @@ class VisAnaGUI(tk.LabelFrame):
                 #print("qi =",str(qi))
                 p = self.c_param_list[pi]
                 #subplot_num += 1
-                if pi > qi:#not p == q:
-                    subplot_num = (qi)*(paraLen-1) + (pi)
-                    print("\tsubplot_num=",str(subplot_num))
+                if pi < qi:#not p == q: 
+                    subplot_num = (qi-1)*(paraLen-1) + (pi+1)
+                    print(subplot_num)
+                    #print("\tsubplot_num=",str(subplot_num))
                     param_combos.append((p,q))
                     x = self.df("clustered")[p]
                     y = self.df("clustered")[q]
-                    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) #type:Axes
-                    self.ax.grid(True)
+                    print("pi=",str(pi),"qi=",str(qi))
+                    #if qi>0 & pi>0:
+                    #    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=axarr[0][pi-1], sharey=axarr[qi][0])
+                    #if qi>1:
+                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=sharex[pi])
+                    if pi>1:
+                        ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
+                    else:
+                        ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) 
+
+                    if pi==0:
+                        print("add sharey for",str(qi))
+                        sharey[qi] = ax1
 
                     #print(self.centroids[1,0])
-                    colors = ["red", "blue", "green", "brown"]
                     for i in range(self.cluster_k):
                         one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == i]
-                        self.ax.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=colors[i], marker=".", alpha=0.1, s=2)
+                        ax1.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=self.COLORS[i], marker=".", alpha=0.1, s=2)
                         #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
-                        self.ax.plot(self.centroids[i,pi],self.centroids[i,qi],'kx')
+                        ax1.plot(self.centroids[i][pi],self.centroids[i][qi],'kx')
 
                     #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
                     #self.ax.set_xlabel(p)
                     #self.ax.set_ylabel(q)
-                    self.ax.set_xlim(x.min(), x.max(), emit=False)
-                    self.ax.set_ylim(y.min(), y.max(), emit=False)
-                    self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
-                    self.ax.callbacks.connect('ylim_changed', self.handle_view_change) 
+                    ax1.grid(True)
+                    ax1.set_xlim(x.min(), x.max(), emit=False)
+                    ax1.set_ylim(y.min(), y.max(), emit=False)
+                    #self.ax.yaxis.set_visible(False)
+                    ax1.xaxis.set_visible(False)
+                    ax1.callbacks.connect('xlim_changed', self.handle_view_change)
+                    ax1.callbacks.connect('ylim_changed', self.handle_view_change) 
+                    axarr[-1].append(ax1)
+                    dummy[-1].append(0)
+                    if pi == paraLen-1:
+                        axarr.append([])
+                        dummy.append([])
+                    #print(axarr)
 
 
         self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
