@@ -5,6 +5,7 @@ from tkinter.ttk import Combobox
 import matplotlib
 
 import datasource
+import analytics
 
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -24,6 +25,12 @@ from sklearn.linear_model import LinearRegression
 
 
 class VisAnaGUI(tk.LabelFrame):
+
+    ## constants for current mode
+    PLOT_MODE = 10
+    ANALYTICS_MODE = 11
+    ## constants for shown cluster plot
+    SMALL_MULTIPLES = 20
 
     #update levels, each level includes all lower ones
     NOTHING=0
@@ -46,6 +53,9 @@ class VisAnaGUI(tk.LabelFrame):
         #                      dtstart=datetime(2014,1,1,0,0,0),
         #                      until=datetime(2015,1,1,0,0,0)):
         #    self.dates.append(dt.date())
+        self.mode = self.PLOT_MODE
+        self.cluster_k = 4
+
         self.mininterval=60
 
         ## save data source
@@ -58,13 +68,10 @@ class VisAnaGUI(tk.LabelFrame):
 
         ## parameter variables for listboxes
         self.param_list = list(ds.get_data("base").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
-        #print("params:")
-        #print(self.param_list)
-        #print(list(self.param_list))
-        #print(self.param_list[1])
+
         self.param2 = self.param_list[1]
         self.param1 = self.param_list[2]
-        self.aggregation_limit=1
+        self.aggregation_limit=360
 
         ## simple string to describe last action (for history)
         self.action_str = "Show base data"
@@ -245,6 +252,7 @@ class VisAnaGUI(tk.LabelFrame):
     def create_plot(self):
         self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
         self.ax = self.fig.add_subplot(111) #type:Axes
+        #self.ax2 = self.fig.add_subplot(212)
         self.ax.grid(True)
         self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
 
@@ -266,8 +274,36 @@ class VisAnaGUI(tk.LabelFrame):
     ############################
     # UI HANDLER
 
+    ## generate clusters
+    def create_clusters(self):
+        print("CREATE CLUSTERS")
+        ## call analytics functions
+        analytics.create_distributions("base", "out", self.ds)
+        self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k)
+        print("\tCLUSTERED")
+        ## parameter variables for cluster mode
+        self.c_param_list = list(ds.get_data("clustered").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
+        self.c_param_list = datasource.GRAIN_COLS
+        print("c_param_list:")
+        print(self.c_param_list)
+
+        self.cluster_param1 = self.c_param_list[0]
+        self.cluster_param2 = self.c_param_list[1]
+
+
+        self.mode = self.ANALYTICS_MODE
+        print("change mode to ",self.mode)
+
+        ## TODO: might need to be changed?!
+        self.unprocessed_action=self.PLOT_DATA
+
+        self.add_to_history("generate clusters")
+        self.action_str = "Generate clusters"
+        print("\tCLUSTERING FINISHED")
+
     ## dummy method
     def reset_to_start(self):
+        self.create_clusters()
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
@@ -717,7 +753,12 @@ class VisAnaGUI(tk.LabelFrame):
             #self.ds.aggregateTime("shown_dates","COUNT", 24*60,"show")
         #        try:
         if self.unprocessed_action>=self.PLOT:
-            self.draw_plot()
+            if self.mode == self.PLOT_MODE:
+                print("draw normal plots")
+                self.draw_plot()
+            elif self.mode == self.ANALYTICS_MODE:
+                print("draw multiple plots")
+                self.create_multiple_plots()
 
         self.draw_timeline()
         #print("add_to_history:",self.action_str)
@@ -727,6 +768,68 @@ class VisAnaGUI(tk.LabelFrame):
         #            pass
         self.unprocessed_action=self.NOTHING
 
+
+    #add an empty plot to the GUI
+    def create_multiple_plots(self):
+        self.clean_tooltip(True)
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+
+        param_combos = []
+        subplot_num = 0
+        paraLen = len(self.c_param_list)
+        for qi in range(0, paraLen):
+            q = self.c_param_list[qi]
+            #subplot_num = ((subplot_num%10)*10)+111
+            #print("subplot_num=",str(subplot_num))
+            for pi in range(0, paraLen):
+                #print("qi =",str(qi))
+                p = self.c_param_list[pi]
+                #subplot_num += 1
+                if pi > qi:#not p == q:
+                    subplot_num = (qi)*(paraLen-1) + (pi)
+                    print("\tsubplot_num=",str(subplot_num))
+                    param_combos.append((p,q))
+                    x = self.df("clustered")[p]
+                    y = self.df("clustered")[q]
+                    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) #type:Axes
+                    self.ax.grid(True)
+
+                    #print(self.centroids[1,0])
+                    colors = ["red", "blue", "green", "brown"]
+                    for i in range(self.cluster_k):
+                        one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == i]
+                        self.ax.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=colors[i], marker=".", alpha=0.1, s=2)
+                        #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
+                        self.ax.plot(self.centroids[i,pi],self.centroids[i,qi],'kx')
+
+                    #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+
+                    #self.ax.set_xlabel(p)
+                    #self.ax.set_ylabel(q)
+                    self.ax.set_xlim(x.min(), x.max(), emit=False)
+                    self.ax.set_ylim(y.min(), y.max(), emit=False)
+                    self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+                    self.ax.callbacks.connect('ylim_changed', self.handle_view_change) 
+
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
+
+        #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        #self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+        #self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+
+        # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
+        #self.ctbwidget=tk.Frame(self)
+        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+
+        util.zoom_factory(self.ax)
+
+        self.fig.tight_layout(pad=0)
+        self.canvas.draw()
 
     ## update view with specified data
     def draw_plot(self):
