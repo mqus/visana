@@ -23,6 +23,10 @@ class DataSource:
 	def get_data(self, name):
 		return self.table_store[name]
 
+	## return table with the given name
+	def table(self, name)-> pd.DataFrame:
+		return self.table_store[name]
+
 	## return base table with original data
 	def get_base_data(self):
 		return self.table_store["base"] #type:DataTable
@@ -40,7 +44,7 @@ class DataSource:
 		self.table_store["base"]=DataTable(path)
 		#self.table_store["base"] = DataTable(df=self.get_data("base").df().sort_values(by=TIME_ATTR))
 
-	def pop_table(self,name):
+	def pop_table(self,name)-> DataTable:
 		self.table_store.pop(name)
 
 	## give in_table another alias out_table
@@ -197,11 +201,28 @@ class DataSource:
 
 		self.table_store[out_table] = DataTable(df=out)
 
+
+
+	def filterforvalues(self,out_table, cols,method="OR", in_table="base"):
+		real_cols=[]
+		#exclude Timestamps
+		for col in cols:
+			if not col == self.get_time_colname():
+				real_cols.append(col)
+
+
+
 	#select with multiple ids
 	def select_ids(self,out_table, ids, in_table="base"):
 		df = self.table_store[in_table].df()  # type:pd.DataFrame
 		df= df.loc[ids]
 		self.table_store[out_table] = DataTable(df=df)
+
+	def get_time_colname(self):
+		return TIME_ATTR
+
+	def df(self,name)-> pd.DataFrame:
+		return self.get_data(name).df()
 
 
 

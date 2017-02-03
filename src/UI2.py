@@ -46,7 +46,7 @@ class VisAnaGUI(tk.LabelFrame):
         #                      dtstart=datetime(2014,1,1,0,0,0),
         #                      until=datetime(2015,1,1,0,0,0)):
         #    self.dates.append(dt.date())
-        self.mininterval=60
+        self.mininterval=360
 
         ## save data source
         self.ds = ds #type:datasource.DataSource
@@ -97,7 +97,7 @@ class VisAnaGUI(tk.LabelFrame):
     # UI CREATION
 
     def draw_frame(self, master):
-        tk.LabelFrame.__init__(self, master, bg="red")
+        tk.LabelFrame.__init__(self, master)#, bg="red")
 
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
@@ -108,7 +108,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3,weight=1)
         self.rowconfigure(2,minsize=100)
-        self.configure(background="red")
+        #self.configure(background="red")
 
         self.create_widgets()
 
@@ -173,7 +173,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 
     def create_listboxes(self, parent) -> tk.LabelFrame:
-        frame=tk.LabelFrame(parent, bg="red")
+        frame=tk.LabelFrame(parent)#, bg="red")
 
 
         self.paramlabel = tk.Label(frame, text="Choose Parameters")
@@ -184,7 +184,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param1lbl.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
         self.param1var = StringVar()
         self.param1var.set(self.param1)
-        self.param1box=Combobox(frame, textvariable=self.param1var, state="readonly",width=15)
+        self.param1box=Combobox(frame, textvariable=self.param1var, state="readonly")
         self.param1box['values'] = self.param_list
         self.param1box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
         self.param1box.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.W))
@@ -194,7 +194,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param1lbl.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
         self.param2var = StringVar()
         self.param2var.set(self.param2)
-        self.param2box = Combobox(frame, textvariable=self.param2var, state="readonly", width=15)
+        self.param2box = Combobox(frame, textvariable=self.param2var, state="readonly")
         self.param2box['values'] = self.param_list
         self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
         self.param2box.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.W))
@@ -395,6 +395,7 @@ class VisAnaGUI(tk.LabelFrame):
     ## is called to to do something when the mouse hovers over the plot and has changed its position.
     ## if no mousebutton is pressed and no points were selected, a hover-tooltip is shown.
     ## if the left button is pressed, (re-)draw the selection indicator
+    i=1
     def handle_hover(self, mouseevent):
         if not mouseevent.button in [1,3] and self.select_rect is None:
             isover, props = self.handle_mouse_event(mouseevent)
@@ -575,7 +576,7 @@ class VisAnaGUI(tk.LabelFrame):
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
         #shown_dates = self.build_contained_dict(df)
-        if self.aggregation_limit <= 1:
+        if self.aggregation_limit <= self.mininterval:
             self.ds.aggregateTime("all_days", "COUNT", self.mininterval, "base")
         else:
             self.ds.aggregateTime("all_days", "COUNT", self.aggregation_limit, "base")
@@ -599,11 +600,14 @@ class VisAnaGUI(tk.LabelFrame):
         ## prepare data for timeline
         days = []
         values = []
+        print(self.df("all_days").head(2))
 
         #self.df("all_days").
         for date in self.df("all_days").index.values:
             self.df("all_days")
-            if self.df("all_days")[self.param1][date]>0 and self.df("all_days")[self.param2][date]>0:
+            col1_has_values=((self.param1 == datasource.TIME_ATTR) or (self.df("all_days")[self.param1][date]>0))
+            col2_has_values=((self.param2 == datasource.TIME_ATTR) or (self.df("all_days")[self.param2][date]>0))
+            if col1_has_values and col2_has_values:
                 days.append(date)
                 ##if random() < 0.01:
                 #if self.dates[self.startSlider.get()] <= day < self.dates[self.endSlider.get()]:
@@ -734,12 +738,13 @@ class VisAnaGUI(tk.LabelFrame):
         self.clean_tooltip(True)
         self.ax.clear()
         self.ax.grid(True)
-        x=self.df("show")[self.param1]
-        y=self.df("show")[self.param2]
-        if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
-            self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
-        else:
-            self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+        x=self.ds.get_data("show").get_column(self.param1)
+        y=self.ds.get_data("show").get_column(self.param2)
+        #if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
+        #    #self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
+        #    self.plot = self.ax.scatter(x=x, y=y, picker=self.handle_pick)
+        #else:
+        self.plot=self.ax.scatter(x=x, y=y, marker="o", s=3, alpha=0.2,linewidths=0,picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)
