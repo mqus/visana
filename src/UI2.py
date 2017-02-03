@@ -5,7 +5,9 @@ from tkinter.ttk import Combobox
 import matplotlib
 
 import datasource
+from datasource import COLORS
 import analytics
+import GrainSelection
 
 matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -21,6 +23,7 @@ import numpy as np
 from v2.Selector import Selector
 
 from sklearn.linear_model import LinearRegression
+
 
 
 
@@ -42,7 +45,6 @@ class VisAnaGUI(tk.LabelFrame):
     PLOT_DATA=4
     DATA_TIDYUP=5
 
-    COLORS=["#1F77B4", "#FF7F0E", "#2CA02C", "#d62728", "#9467BD", "#8C564B", "#E377C2", "#7F7F7F", "#BCBD22", "#17BECF"]
 
 
 
@@ -59,6 +61,8 @@ class VisAnaGUI(tk.LabelFrame):
         self.cluster_k = 4
 
         self.mininterval=60
+        self.CUSTOM_COLS = []
+
 
         ## save data source
         self.ds = ds #type:datasource.DataSource
@@ -278,15 +282,16 @@ class VisAnaGUI(tk.LabelFrame):
     # UI HANDLER
 
     ## generate clusters
-    def create_clusters(self):
+    def create_clusters(self, custom_classes_dict):
         print("CREATE CLUSTERS")
         ## call analytics functions
-        analytics.create_distributions("base", "out", self.ds)
-        self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k)
+        analytics.create_distributions("base", "out", self.ds, custom_classes_dict=custom_classes_dict)
+        self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k, colNames=self.CUSTOM_COLS)
         print("\tCLUSTERED")
         ## parameter variables for cluster mode
-        self.c_param_list = list(ds.get_data("clustered").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
-        self.c_param_list = datasource.GRAIN_COLS
+        #self.c_param_list = list(ds.get_data("clustered").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
+        #self.c_param_list = datasource.GRAIN_COLS
+        self.c_param_list = self.CUSTOM_COLS
         print("c_param_list:")
         print(self.c_param_list)
 
@@ -307,7 +312,25 @@ class VisAnaGUI(tk.LabelFrame):
 
     ## dummy method
     def reset_to_start(self):
-        self.create_clusters()
+        #self.create_clusters()
+        Mbox = GrainSelection.Mbox
+        Mbox.root = root
+
+
+        mbox = Mbox()
+        root.wait_window(mbox.top)
+        custom_classes_dict = {}
+        print(mbox.classesDict)
+        print(type(mbox.classesDict))
+        for k,v in mbox.classesDict.items():
+            col = "GRAIN_CLASS_"+str(k)
+            custom_classes_dict[col] = v
+        self.CUSTOM_COLS = sorted(list(custom_classes_dict.keys()))
+        self.create_clusters(custom_classes_dict=custom_classes_dict)
+        #print("result:")
+        #print(mbox.classesDict)
+
+
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
@@ -650,7 +673,7 @@ class VisAnaGUI(tk.LabelFrame):
         ## prepare data for timeline
         days = []
         values = []
-        print(self.df("all_days").head(2))
+        #print(self.df("all_days").head(2))
 
         #self.df("all_days").
         for date in self.df("all_days").index.values:
@@ -815,7 +838,7 @@ class VisAnaGUI(tk.LabelFrame):
 
             cen = [self.centroids[c][i] for i in range(0, len(self.c_param_list))]
 
-            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=self.COLORS[c], ecolor="black", yerr=ystdev)
+            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=COLORS[c], ecolor="black", yerr=ystdev)
         self.ax.grid(True)
         #self.ax.set_xticklabels
         #self.ax.set_ylim(0, 1, emit=False)
@@ -882,38 +905,56 @@ class VisAnaGUI(tk.LabelFrame):
                     #    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=axarr[0][pi-1], sharey=axarr[qi][0])
                     #if qi>1:
                     #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=sharex[pi])
-                    if pi>1:
-                        ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
-                    else:
-                        ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) 
+                    #if pi>1:
+                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
+                    #else:
+                    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) 
 
-                    if pi==0:
-                        print("add sharey for",str(qi))
-                        sharey[qi] = ax1
+                    #if pi==0:
+                    #    print("add sharey for",str(qi))
+                    #    sharey[qi] = ax1
 
                     #print(self.centroids[1,0])
                     for i in range(self.cluster_k):
                         one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == i]
-                        ax1.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=self.COLORS[i], marker=".", alpha=0.1, s=2)
+                        ax1.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=COLORS[i], marker=".", alpha=0.1, s=2)
                         #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
                         ax1.plot(self.centroids[i][pi],self.centroids[i][qi],'kx')
 
                     #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
-                    #self.ax.set_xlabel(p)
-                    #self.ax.set_ylabel(q)
+                    if qi == paraLen-1:
+                        if "GRAIN_CLASS" in p: #custom class
+                            ax1.set_xlabel(p[-1])
+                        else:
+                            ax1.set_xlabel(p)
+                        ax1.xaxis.set_visible(True)
+                    else:
+                        #ax1.set_xlabel(p)
+                        ax1.set_xticklabels([])
+                        #ax1.xaxis.set_visible(False)
+
+                    if pi == 0:
+                        if "GRAIN_CLASS" in q: #custom class
+                            ax1.set_ylabel(q[-1])
+                        else:
+                            ax1.set_ylabel(q)
+                        #self.ax.yaxis.set_visible(False)
+                    else:
+                        #ax1.set_ylabel(q)
+                        ax1.set_yticklabels([])
+                        #ax1.yaxis.set_visible(False)
+
                     ax1.grid(True)
                     ax1.set_xlim(x.min(), x.max(), emit=False)
                     ax1.set_ylim(y.min(), y.max(), emit=False)
-                    #self.ax.yaxis.set_visible(False)
-                    ax1.xaxis.set_visible(False)
                     ax1.callbacks.connect('xlim_changed', self.handle_view_change)
                     ax1.callbacks.connect('ylim_changed', self.handle_view_change) 
-                    axarr[-1].append(ax1)
-                    dummy[-1].append(0)
-                    if pi == paraLen-1:
-                        axarr.append([])
-                        dummy.append([])
+                    #axarr[-1].append(ax1)
+                    #dummy[-1].append(0)
+                    #if pi == paraLen-1:
+                    #    axarr.append([])
+                    #    dummy.append([])
                     #print(axarr)
 
 

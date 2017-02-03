@@ -7,7 +7,7 @@ import numpy as np
 ## create a new table for aggregated distributions in 2 steps:
 ##      1. aggregate data with given intervalsize (with MEAN value)
 ##      2. create distributions for given grain size columns for each row
-def create_distributions(in_table, out_table, datasource, intervalsize=60):
+def create_distributions(in_table, out_table, datasource, intervalsize=60, custom_classes_dict=None):
     df = datasource.get_data(name=in_table).df()
     ## which columns to keep? 
     #df = df[[TIME_ATTR] + GRAIN_COLS]
@@ -23,17 +23,20 @@ def create_distributions(in_table, out_table, datasource, intervalsize=60):
     ## calculate frequencies for each row,
     ## and store it into a new dataframe
     data=dict() ## dictionary for results
-    for col in GRAIN_COLS:
-        data[col] = list()
+    if custom_classes_dict == None:
+        for col in GRAIN_COLS:
+            data[col] = list()
+    else:
+        custom_cols = sorted(custom_classes_dict.keys())
+        for k in custom_cols:
+            data[k] = list()
+
     #data[TIME_ATTR] = list()
 
     #print(df.describe())
 
     ## iterate through rows
     for index, row in df.iterrows():
-        #print("row:")
-        #print(row)
-        #print(row.isnull().any())
         ## check for NA and ignore rows with missing values
         if not row.isnull().any():
             ## calculate sum of row
@@ -46,13 +49,21 @@ def create_distributions(in_table, out_table, datasource, intervalsize=60):
                 #for col in grain_columns:
                 #   data[col].append(0)
             else:
-                for col in GRAIN_COLS:
-                    freq = abs(row[col]) / rowsum
-                    data[col].append(freq)
-                    if freq < 0 or freq > 1:
-                        print(row)
-                        print("freq: "+str(freq))
-                    #print(str(freq)+",",)
+                if custom_classes_dict == None:
+                    for col in GRAIN_COLS:
+                        freq = abs(row[col]) / rowsum
+                        data[col].append(freq)
+                        #if freq < 0 or freq > 1:
+                        #    print(row)
+                        #    print("freq: "+str(freq))
+                        #print(str(freq)+",",)
+                else:
+                    for col in custom_cols:
+                        comb_freq = 0
+                        for grain in custom_classes_dict[col]:
+                            freq = abs(row[grain]) / rowsum
+                            comb_freq += freq
+                        data[col].append(comb_freq)
                 #data[TIME_ATTR].append(row[TIME_ATTR])
 
     df=pd.DataFrame(data)
@@ -62,11 +73,12 @@ def create_distributions(in_table, out_table, datasource, intervalsize=60):
     #print(table_store[out_table])
     #calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=datasource, k=4)
 
-def calc_clusters(in_table, out_table, datasource, k):
+def calc_clusters(in_table, out_table, datasource, k, colNames=GRAIN_COLS):
     print("CLUSTERING")
+    print(colNames)
     df = datasource.get_data(in_table).df()
     kmeans = cluster.KMeans(n_clusters=k)
-    kmeans.fit(df[GRAIN_COLS])
+    kmeans.fit(df[colNames])
 
     cent_map = {}
     centroids = kmeans.cluster_centers_
