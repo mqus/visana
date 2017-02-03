@@ -33,7 +33,7 @@ class VisAnaGUI(tk.LabelFrame):
     PLOT=3
     PLOT_DATA=4
     DATA_TIDYUP=5
-
+    
 
 
 
@@ -268,6 +268,8 @@ class VisAnaGUI(tk.LabelFrame):
     ## dummy method
     def reset_to_start(self):
         analytics.create_distributions("base", "out", self.ds)
+        analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=4)
+
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
         #self.param2box.select_set(self.param_list.index("Small"))
