@@ -31,6 +31,10 @@ class DataSource:
 	def get_base_data(self):
 		return self.table_store["base"] #type:DataTable
 
+	## return base table with original data
+	def base(self):
+		return self.table_store["base"] #type:DataTable
+
 	## return the dictionary with all tables
 	def get_table_store(self):
 		return self.table_store
@@ -217,6 +221,39 @@ class DataSource:
 		df = self.table_store[in_table].df()  # type:pd.DataFrame
 		df= df.loc[ids]
 		self.table_store[out_table] = DataTable(df=df)
+
+	def select_complex(self,out_table, clause, in_table="base"):
+		in_df = self.table_store[in_table].df()  # type:pd.DataFrame
+		all_df=dict()
+		once=True
+		for i in clause:
+			tmp_df=in_df;
+			for j in clause[i]:
+				print(i, j, clause[i][j])
+
+				equation=clause[i][j]
+				val = float(equation["val"])
+				param = 	equation["param"]
+				if equation["comp"] == "<":
+					tmp_df = tmp_df.loc[tmp_df[param] < val]
+				elif equation["comp"] == "<=":
+					tmp_df = tmp_df.loc[tmp_df[param] <= val]
+				elif equation["comp"] == "=":
+					tmp_df = tmp_df.loc[tmp_df[param] == val]
+				elif equation["comp"] == "=>":
+					tmp_df = tmp_df.loc[tmp_df[param] >= val]
+				elif equation["comp"] == ">":
+					tmp_df = tmp_df.loc[tmp_df[param] > val]
+			if once:
+				once=False
+				out_df=tmp_df
+			else:
+				out_df=out_df.combine_first(tmp_df)
+		if once: #if no clauses were within the dict
+			out_df=in_df
+		self.table_store[out_table] = DataTable(df=out_df)
+
+
 
 	def get_time_colname(self):
 		return TIME_ATTR

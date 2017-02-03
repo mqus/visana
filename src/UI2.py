@@ -18,6 +18,7 @@ from dateutil import rrule
 from time import time
 import util
 import numpy as np
+from v2.Selector import Selector
 
 from sklearn.linear_model import LinearRegression
 
@@ -83,6 +84,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.draw_frame(master)
 
         self.mouse_pressed=None
+        self.clause=dict()
 
         ## save time of last update to prevent too many
         ## updates when using sliders
@@ -155,7 +157,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.projector = self.create_listboxes(self.left_sidebar)
         self.projector.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W))
 
-        self.selector = Selector(self.left_sidebar, self.param_list, self.handle_view_change)
+        self.selector = Selector(self.left_sidebar, self.ds, self.handle_selector_change)
         self.selector.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
 
 
@@ -395,6 +397,16 @@ class VisAnaGUI(tk.LabelFrame):
     #     self.trigger_update(level=self.PLOT_DATA)
     #     self.last_action = time()
     #     self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
+
+    ## handle data update event, i.e. a slider changed.
+    def handle_selector_change(self,clause):
+        self.clause=clause
+
+        self.trigger_update(level=self.PLOT_DATA)
+        self.last_action = time()
+        self.action_str = "New selection: "+str(clause)
+
+
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
@@ -749,13 +761,14 @@ class VisAnaGUI(tk.LabelFrame):
             #self.ds.select(out_table="time-limited", attr_name=datasource.TIME_ATTR,
             #    a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
             #self.df = self.ds.get_data("time_filter").df()
+            self.ds.select_complex("sel",self.clause, "base")
             if self.aggregation_limit==1:
-                self.ds.link("show", "base")
+                self.ds.link("show", "sel")
             else:
-                self.ds.aggregateTime(out_table="show", mode="AVG", minutes=self.aggregation_limit, in_table="base")
+                self.ds.aggregateTime(out_table="show", mode="AVG", minutes=self.aggregation_limit, in_table="sel")
                 #self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="base")
             #self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
-            self.ds.aggregateTime("shown_dates","COUNT", self.aggregation_limit, in_table="base")
+            self.ds.aggregateTime("shown_dates","COUNT", self.aggregation_limit, in_table="sel")
             #self.ds.aggregateTime("shown_dates","COUNT", 24*60,"show")
         #        try:
         if self.unprocessed_action>=self.PLOT:
@@ -935,7 +948,8 @@ class VisAnaGUI(tk.LabelFrame):
         #    #self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
         #    self.plot = self.ax.scatter(x=x, y=y, picker=self.handle_pick)
         #else:
-        self.plot=self.ax.scatter(x=x, y=y, marker="o", s=3, alpha=0.2,linewidths=0,picker=self.handle_pick)
+        self.plot=self.ax.scatter(x=x, y=y, marker="o",color="black", s=4, alpha=0.2,linewidths=0,
+                                  picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)

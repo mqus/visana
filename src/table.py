@@ -21,7 +21,7 @@ class DataTable:
 
 	## return list of attribute names
 	def get_attr_names(self):
-		return self.table.columns.values
+		return list(self.table.columns.values)
 		#return np.append(self.table.columns.values,[self.indexName])
 
 	## return number of tuples in table

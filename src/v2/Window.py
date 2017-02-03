@@ -3,11 +3,11 @@ from tkinter import filedialog
 from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
 
 import datasource
-from Selector import Selector
 import  tkinter.ttk as ttk
 
 from v2.History import HistoryView
 from v2.Options import Options
+from v2.SimpleScatter import SimpleScatter
 from v2.Timeline import Timeline
 
 
@@ -34,14 +34,15 @@ class VisAnaWindow(tk.Frame):
         #self.createTimeline()
         self.drawParts()
 
-
+        ##MUSSWEG TODO
+        self.openFile("../../data/dust-2014-v2.dat")
 
     def createMenu(self):
         #win = tk.Toplevel(root)
         menubar = tk.Menu(self.master)
         self.master['menu'] = menubar
-        menu_file = tk.Menu(menubar)
-        menu_edit = tk.Menu(menubar)
+        menu_file = tk.Menu(menubar,tearoff=False)
+        menu_edit = tk.Menu(menubar,tearoff=False)
         menubar.add_cascade(menu=menu_file, label='File')
         #menubar.add_cascade(menu=menu_edit, label='Edit')
 
@@ -68,8 +69,13 @@ class VisAnaWindow(tk.Frame):
         self.history = HistoryView(self.sidepane_r)
         self.sidepane_r.add(self.history,text="History")
 
-        self.options = Options(self)
+        #add clustering options
+        self.options = Options(self.sidepane_r,self)
         self.sidepane_r.add(self.options, text="Options")
+
+        self.scatter = SimpleScatter(self.graphs, self)
+        self.graphs.add(self.scatter, text="ScatterPlot")
+
 
     def redrawParts(self):
         if not self.timeline is None:
@@ -78,13 +84,19 @@ class VisAnaWindow(tk.Frame):
             self.graphs.destroy()
         if not self.sidepane_r is None:
             self.sidepane_r.destroy()
+        #TODO draw
 
-    def openFile(self):
-        filename = tk.filedialog.askopenfile("r")
-        ds = datasource.DataSource()
-        ds.read_data(filename)
-        print(filename)
-        print(ds.df("base").head())
+    def openFile(self, filename=None):
+        if filename is None:
+            filename = tk.filedialog.askopenfile("r")
+            if filename is None:
+                return
+        self.ds = datasource.DataSource()
+        self.ds.read_data(filename)
+
+        self.options.ds_changed()
+        self.scatter.ds_changed()
+
 
 
 
@@ -93,5 +105,5 @@ class VisAnaWindow(tk.Frame):
 root = tk.Tk()
 
 app = VisAnaWindow(master=root)
-
 app.mainloop()
+
