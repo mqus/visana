@@ -61,7 +61,6 @@ class VisAnaGUI(tk.LabelFrame):
         self.cluster_k = 4
 
         self.mininterval=60
-        self.CUSTOM_COLS = []
 
 
         ## save data source
@@ -281,54 +280,49 @@ class VisAnaGUI(tk.LabelFrame):
     ############################
     # UI HANDLER
 
-    ## generate clusters
-    def create_clusters(self, custom_classes_dict):
-        print("CREATE CLUSTERS")
-        ## call analytics functions
-        analytics.create_distributions("base", "out", self.ds, custom_classes_dict=custom_classes_dict)
-        self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k, colNames=self.CUSTOM_COLS)
-        print("\tCLUSTERED")
-        ## parameter variables for cluster mode
-        #self.c_param_list = list(ds.get_data("clustered").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
-        #self.c_param_list = datasource.GRAIN_COLS
-        self.c_param_list = self.CUSTOM_COLS
-        print("c_param_list:")
-        print(self.c_param_list)
+    ## generate clusters and asks for custom grain classes
+    def create_clusters(self, in_table="base"):
+        ## call dialogue window to ask for custom grain classes
+        Mbox = GrainSelection.Mbox
+        Mbox.root = root
+        mbox = Mbox()
+        ## wait for answer
+        root.wait_window(mbox.top)
+        ## -> result is in mbox.classesDict
 
-        self.cluster_param1 = self.c_param_list[0]
-        self.cluster_param2 = self.c_param_list[1]
+        ## ask if valid answer has been submitted
+        if mbox.success:
+            ## fetch answers in dict with changed labels
+            custom_classes_dict = {}
+            #print(mbox.classesDict)
+            for k,v in mbox.classesDict.items():
+                col = "GRAIN_CLASS_"+str(k)
+                custom_classes_dict[col] = v
+            self.c_param_list = sorted(list(custom_classes_dict.keys()))
 
+            #print("CREATE CLUSTERS")
 
-        self.mode = self.ANALYTICS_MODE
-        self.plot_type = self.SMALL_MULTIPLES
-        print("change mode to ",self.mode)
+            ## call analytics functions
+            analytics.create_distributions(in_table, "out", self.ds, custom_classes_dict=custom_classes_dict)
+            self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k, colNames=self.c_param_list)
+            #print("\tCLUSTERED")
 
-        ## TODO: might need to be changed?!
-        self.unprocessed_action=self.PLOT_DATA
+            ## change state variables so the proper graph is displayed
+            self.mode = self.ANALYTICS_MODE
+            #self.plot_type = self.SMALL_HISTOS
+            self.plot_type = self.SMALL_MULTIPLES
+            #print("change mode to ",self.mode)
 
-        self.add_to_history("generate clusters")
-        self.action_str = "Generate clusters"
-        print("\tCLUSTERING FINISHED")
+            ## TODO: might need to be changed?!
+            self.unprocessed_action=self.PLOT_DATA
+
+            self.add_to_history("generate clusters")
+            self.action_str = "Generate clusters"
+            #print("\tCLUSTERING FINISHED")
 
     ## dummy method
     def reset_to_start(self):
-        #self.create_clusters()
-        Mbox = GrainSelection.Mbox
-        Mbox.root = root
-
-
-        mbox = Mbox()
-        root.wait_window(mbox.top)
-        custom_classes_dict = {}
-        print(mbox.classesDict)
-        print(type(mbox.classesDict))
-        for k,v in mbox.classesDict.items():
-            col = "GRAIN_CLASS_"+str(k)
-            custom_classes_dict[col] = v
-        self.CUSTOM_COLS = sorted(list(custom_classes_dict.keys()))
-        self.create_clusters(custom_classes_dict=custom_classes_dict)
-        #print("result:")
-        #print(mbox.classesDict)
+        self.create_clusters()
 
 
         self.clean_tooltip(True)
@@ -821,9 +815,9 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax = self.fig.add_subplot(111) #type:Axes
 
         #subplot_num = 0
-        print(self.centroids)
-        y_pos = np.arange(len(datasource.GRAIN_COLS))
-        print(y_pos)
+        #print(self.centroids)
+        y_pos = np.arange(len(self.c_param_list))
+        #print(y_pos)
         width = 0.95/self.cluster_k
         #colors = ["#d62728", "blue", "green", "brown"]
         for c in range(0, self.cluster_k):
@@ -831,14 +825,16 @@ class VisAnaGUI(tk.LabelFrame):
             ystdev = []
             one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == c]
 
-            for i in range(0, len(datasource.GRAIN_COLS)):
+            #for i in range(0, len(datasource.GRAIN_COLS)):
+            for i in range(0, len(self.c_param_list)):
                 col = one_value_cluster[self.c_param_list[i]]
                 stdev = np.std(col)
                 ystdev.append(stdev)
 
             cen = [self.centroids[c][i] for i in range(0, len(self.c_param_list))]
-
-            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=COLORS[c], ecolor="black", yerr=ystdev)
+            ## cluster label for legend 
+            c_label = "Cluster "+str(c)
+            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
         self.ax.grid(True)
         #self.ax.set_xticklabels
         #self.ax.set_ylim(0, 1, emit=False)
@@ -846,10 +842,13 @@ class VisAnaGUI(tk.LabelFrame):
         self.ax.set_ylim(0, max_y_val+0.1, emit=False)
 
         self.ax.set_xticks(y_pos + width / 4)
-        self.ax.set_xticklabels(datasource.GRAIN_COLS)
+        self.ax.set_xticklabels(self.c_param_list)
 
         self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
         self.ax.callbacks.connect('ylim_changed', self.handle_view_change) 
+        
+        ## add legend
+        self.ax.legend(loc="upper right", shadow=True)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
 
@@ -870,7 +869,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.fig.tight_layout(pad=0)
         self.canvas.draw()
 
-        print("DISTRIBUTIONS PLOTTED")
+        #print("DISTRIBUTIONS PLOTTED")
 
 
     #add an empty plot to the GUI
@@ -924,32 +923,26 @@ class VisAnaGUI(tk.LabelFrame):
                     #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
                     if qi == paraLen-1:
+                        paraLabel = p
                         if "GRAIN_CLASS" in p: #custom class
-                            ax1.set_xlabel(p[-1])
-                        else:
-                            ax1.set_xlabel(p)
-                        ax1.xaxis.set_visible(True)
+                            paraLabel = "CLASS"+p[-1]
+                        ax1.set_xlabel(paraLabel)
                     else:
-                        #ax1.set_xlabel(p)
                         ax1.set_xticklabels([])
-                        #ax1.xaxis.set_visible(False)
 
                     if pi == 0:
+                        paraLabel = q
                         if "GRAIN_CLASS" in q: #custom class
-                            ax1.set_ylabel(q[-1])
-                        else:
-                            ax1.set_ylabel(q)
-                        #self.ax.yaxis.set_visible(False)
+                            paraLabel = "CLASS"+q[-1]
+                        ax1.set_ylabel(paraLabel)
                     else:
-                        #ax1.set_ylabel(q)
                         ax1.set_yticklabels([])
-                        #ax1.yaxis.set_visible(False)
 
                     ax1.grid(True)
                     ax1.set_xlim(x.min(), x.max(), emit=False)
                     ax1.set_ylim(y.min(), y.max(), emit=False)
-                    ax1.callbacks.connect('xlim_changed', self.handle_view_change)
-                    ax1.callbacks.connect('ylim_changed', self.handle_view_change) 
+                    #ax1.callbacks.connect('xlim_changed', self.handle_view_change)
+                    #ax1.callbacks.connect('ylim_changed', self.handle_view_change) 
                     #axarr[-1].append(ax1)
                     #dummy[-1].append(0)
                     #if pi == paraLen-1:
