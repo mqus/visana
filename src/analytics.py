@@ -82,6 +82,11 @@ def calc_clusters(in_table, out_table, datasource, k, colNames=GRAIN_COLS):
 
     cent_map = {}
     centroids = kmeans.cluster_centers_
+
+    print("centr")
+    print(centroids)
+    print(type(centroids))
+
     temp_cent_order = []
     for c in range(0, len(centroids)):
         t = [c, centroids[c, 0]]
@@ -101,6 +106,10 @@ def calc_clusters(in_table, out_table, datasource, k, colNames=GRAIN_COLS):
 
 
     labels = kmeans.labels_
+    print("lbl")
+    print(labels)
+    print(len(labels))
+
     newlabels = []
     for label in labels:
         newlabels.append(cent_map[label])

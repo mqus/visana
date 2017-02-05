@@ -35,7 +35,11 @@ Wir werden trotzdem beim nächsten Meilenstein versuchen, etwas mehr Komfort in 
 
 
 
-
+# Informationen für den Anwender:
+Wenn Dateien eingelesen werden sollen, die andere Spaltennamen enthalten, müssten bei datasource.py eventuell die 
+Funktionen <code>get_time_columns</code> (gibt den Spaltennamen der Zeitspalte zurück) und 
+<code>get_grain_columns</code> (gibt die Namen aller Spalten, die auf die Staubgröße hinweisen, zurück)
+angepasst werden.
 
 
 
