@@ -1,10 +1,10 @@
 from copy import deepcopy
 from tkinter import Label,LabelFrame, Button, W, N, S, E
 
-class Selector(LabelFrame):
+class Selector_old(LabelFrame):
     LIMIT=1000
     def __init__(self,parent,param_list, apply_action):
-        super(Selector,self).__init__(parent)
+        super(Selector_old, self).__init__(parent)
         self.plist=param_list
         self.apply_action=apply_action
         self.draw_base()

@@ -1,20 +1,21 @@
 import tkinter as tk
-from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
-from Selector import Selector
+from tkinter import Spinbox, StringVar
 from tkinter.ttk import Combobox
-import matplotlib
+
+import GrainSelection
 import analytics
+import matplotlib
 
 import datasource
+from datasource import COLORS
+import Selector_old
 
 matplotlib.use("TkAgg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.axes._axes import Axes
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
-from datetime import datetime
 import pandas as pd
-from dateutil import rrule
 from time import time
 import util
 import numpy as np
@@ -24,7 +25,15 @@ from sklearn.linear_model import LinearRegression
 
 
 
+
 class VisAnaGUI(tk.LabelFrame):
+
+    ## constants for current mode
+    PLOT_MODE = 10
+    ANALYTICS_MODE = 11
+    ## constants for shown cluster plot
+    SMALL_MULTIPLES = 20
+    SMALL_HISTOS = 21
 
     #update levels, each level includes all lower ones
     NOTHING=0
@@ -33,7 +42,6 @@ class VisAnaGUI(tk.LabelFrame):
     PLOT=3
     PLOT_DATA=4
     DATA_TIDYUP=5
-    
 
 
 
@@ -47,23 +55,26 @@ class VisAnaGUI(tk.LabelFrame):
         #                      dtstart=datetime(2014,1,1,0,0,0),
         #                      until=datetime(2015,1,1,0,0,0)):
         #    self.dates.append(dt.date())
+        self.mode = self.PLOT_MODE
+        self.cluster_k = 4
+
+        self.mininterval=60
 
 
         ## save data source
         self.ds = ds #type:datasource.DataSource
-        self.ds.groupby("all_days", datasource.TIME_ATTR, "COUNT","base", bydate=True)
+        # self.ds.groupby("all_days", datasource.TIME_ATTR, "COUNT","base", bydate=True)
+        #self.ds.aggregateTime("all_days", "COUNT",60,"base")
+        # self.ds.aggregateTime("all_days", "COUNT",24*60,"base")
         #self.ds.link("show")
         #self.df=ds.get_base_data().df()
 
         ## parameter variables for listboxes
         self.param_list = list(ds.get_data("base").get_attr_names())#["MasterTime", "Small", "Large", "OutdoorTemp","RelHumidity"]
-        #print("params:")
-        #print(self.param_list)
-        #print(list(self.param_list))
-        #print(self.param_list[1])
+
         self.param2 = self.param_list[1]
         self.param1 = self.param_list[2]
-        self.aggregation_limit=1
+        self.aggregation_limit=360
 
         ## simple string to describe last action (for history)
         self.action_str = "Show base data"
@@ -74,6 +85,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.draw_frame(master)
 
         self.mouse_pressed=None
+        self.clause=dict()
 
         ## save time of last update to prevent too many
         ## updates when using sliders
@@ -96,7 +108,7 @@ class VisAnaGUI(tk.LabelFrame):
     # UI CREATION
 
     def draw_frame(self, master):
-        tk.LabelFrame.__init__(self, master, bg="red")
+        tk.LabelFrame.__init__(self, master)#, bg="red")
 
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
@@ -107,7 +119,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(3,weight=1)
         self.rowconfigure(2,minsize=100)
-        self.configure(background="red")
+        #self.configure(background="red")
 
         self.create_widgets()
 
@@ -146,7 +158,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.projector = self.create_listboxes(self.left_sidebar)
         self.projector.grid(column=0, row=0, sticky=(tk.N, tk.E, tk.W))
 
-        self.selector = Selector(self.left_sidebar, self.param_list, self.handle_view_change)
+        self.selector = Selector_old.Selector_old(self.left_sidebar, self.ds, self.handle_selector_change)
         self.selector.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
 
 
@@ -172,7 +184,7 @@ class VisAnaGUI(tk.LabelFrame):
 
 
     def create_listboxes(self, parent) -> tk.LabelFrame:
-        frame=tk.LabelFrame(parent, bg="red")
+        frame=tk.LabelFrame(parent)#, bg="red")
 
 
         self.paramlabel = tk.Label(frame, text="Choose Parameters")
@@ -183,7 +195,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param1lbl.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W))
         self.param1var = StringVar()
         self.param1var.set(self.param1)
-        self.param1box=Combobox(frame, textvariable=self.param1var, state="readonly",width=15)
+        self.param1box=Combobox(frame, textvariable=self.param1var, state="readonly")
         self.param1box['values'] = self.param_list
         self.param1box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
         self.param1box.grid(column=1, row=1, sticky=(tk.N, tk.E, tk.W))
@@ -193,7 +205,7 @@ class VisAnaGUI(tk.LabelFrame):
         self.param1lbl.grid(column=0, row=2, sticky=(tk.N, tk.E, tk.W))
         self.param2var = StringVar()
         self.param2var.set(self.param2)
-        self.param2box = Combobox(frame, textvariable=self.param2var, state="readonly", width=15)
+        self.param2box = Combobox(frame, textvariable=self.param2var, state="readonly")
         self.param2box['values'] = self.param_list
         self.param2box.bind('<<ComboboxSelected>>', self.handle_paramsChanged)
         self.param2box.grid(column=1, row=2, sticky=(tk.N, tk.E, tk.W))
@@ -217,33 +229,34 @@ class VisAnaGUI(tk.LabelFrame):
         self.testbutton.grid(column=1, row=3, sticky=(tk.W, tk.N))
         return frame
 
-    ## add sliders to GUI
-    def create_sliders(self):
-        ## init sliders
-
-        #self.filter = tk.LabelFrame(self, bg="#0066ff")
-        self.filter = tk.LabelFrame(self, bg="red")
-        self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
-        self.filter.columnconfigure(1, weight=1)
-        self.filter.columnconfigure(0, weight=0)
-
-        self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_start)
-        self.startSlider.set(0)
-        self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_end)
-        self.endSlider.set(365)
-
-        ## add sliders and labels to GUI
-        self.startSlider.grid(column=1, row=0, sticky=(tk.W, tk.N, tk.E))
-        self.startlabel = tk.Label(self.filter, text="FROM \tVALUE")
-        self.startlabel.grid(column=0, row=0, sticky=(tk.W))
-        self.endSlider.grid(column=1, row=1, sticky=(tk.W, tk.S, tk.E))
-        self.endlabel = tk.Label(self.filter, text="TO \tVALUE")
-        self.endlabel.grid(column=0, row=1, sticky=(tk.W))
+    # ## add sliders to GUI
+    # def create_sliders(self):
+    #     ## init sliders
+    #
+    #     #self.filter = tk.LabelFrame(self, bg="#0066ff")
+    #     self.filter = tk.LabelFrame(self, bg="red")
+    #     self.filter.grid(column=0, row=1, sticky=(tk.N, tk.E, tk.W),columnspan=5)
+    #     self.filter.columnconfigure(1, weight=1)
+    #     self.filter.columnconfigure(0, weight=0)
+    #
+    #     self.startSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_start)
+    #     self.startSlider.set(0)
+    #     self.endSlider = Scale(self.filter, from_=0, to=365, orient=HORIZONTAL, command=self.update_end)
+    #     self.endSlider.set(365)
+    #
+    #     ## add sliders and labels to GUI
+    #     self.startSlider.grid(column=1, row=0, sticky=(tk.W, tk.N, tk.E))
+    #     self.startlabel = tk.Label(self.filter, text="FROM \tVALUE")
+    #     self.startlabel.grid(column=0, row=0, sticky=(tk.W))
+    #     self.endSlider.grid(column=1, row=1, sticky=(tk.W, tk.S, tk.E))
+    #     self.endlabel = tk.Label(self.filter, text="TO \tVALUE")
+    #     self.endlabel.grid(column=0, row=1, sticky=(tk.W))
 
     #add an empty plot to the GUI
     def create_plot(self):
         self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
         self.ax = self.fig.add_subplot(111) #type:Axes
+        #self.ax2 = self.fig.add_subplot(212)
         self.ax.grid(True)
         self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
 
@@ -265,10 +278,50 @@ class VisAnaGUI(tk.LabelFrame):
     ############################
     # UI HANDLER
 
+    ## generate clusters and asks for custom grain classes
+    def create_clusters(self, in_table="base"):
+        ## call dialogue window to ask for custom grain classes
+        Mbox = GrainSelection.Mbox
+        Mbox.root = root
+        mbox = Mbox()
+        ## wait for answer
+        root.wait_window(mbox.top)
+        ## -> result is in mbox.classesDict
+
+        ## ask if valid answer has been submitted
+        if mbox.success:
+            ## fetch answers in dict with changed labels
+            custom_classes_dict = {}
+            #print(mbox.classesDict)
+            for k,v in mbox.classesDict.items():
+                col = "GRAIN_CLASS_"+str(k)
+                custom_classes_dict[col] = v
+            self.c_param_list = sorted(list(custom_classes_dict.keys()))
+
+            #print("CREATE CLUSTERS")
+
+            ## call analytics functions
+            analytics.create_distributions(in_table, "out", self.ds, custom_classes_dict=custom_classes_dict)
+            self.centroids = analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=self.cluster_k, colNames=self.c_param_list)
+            #print("\tCLUSTERED")
+
+            ## change state variables so the proper graph is displayed
+            self.mode = self.ANALYTICS_MODE
+            #self.plot_type = self.SMALL_HISTOS
+            self.plot_type = self.SMALL_MULTIPLES
+            #print("change mode to ",self.mode)
+
+            ## TODO: might need to be changed?!
+            self.unprocessed_action=self.PLOT_DATA
+
+            self.add_to_history("generate clusters")
+            self.action_str = "Generate clusters"
+            #print("\tCLUSTERING FINISHED")
+
     ## dummy method
     def reset_to_start(self):
-        analytics.create_distributions("base", "out", self.ds)
-        analytics.calc_clusters(in_table="cluster_distr", out_table="clustered", datasource=self.ds, k=4)
+        self.create_clusters()
+
 
         self.clean_tooltip(True)
         #self.param1box.select_set(self.param_list.index("Large"))
@@ -332,33 +385,43 @@ class VisAnaGUI(tk.LabelFrame):
     ## the first or second slider
     #########
 
-    ## triggered by changing startslider value
-    def update_start(self, event):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        if endVal < fromVal:
-            self.endSlider.set(fromVal)
-
-        self.handle_slider_update()
-
-    ## triggered by changing endslider value
-    def update_end(self, event):
-        fromVal = self.startSlider.get()
-        endVal = self.endSlider.get()
-        if endVal < fromVal:
-            self.startSlider.set(endVal)
-
-        self.handle_slider_update()
+    # ## triggered by changing startslider value
+    # def update_start(self, event):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     if endVal < fromVal:
+    #         self.endSlider.set(fromVal)
+    #
+    #     self.handle_slider_update()
+    #
+    # ## triggered by changing endslider value
+    # def update_end(self, event):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     if endVal < fromVal:
+    #         self.startSlider.set(endVal)
+    #
+    #     self.handle_slider_update()
+    #
+    # ## handle data update event, i.e. a slider changed.
+    # def handle_slider_update(self):
+    #     fromVal = self.startSlider.get()
+    #     endVal = self.endSlider.get()
+    #     self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
+    #     self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
+    #     self.trigger_update(level=self.PLOT_DATA)
+    #     self.last_action = time()
+    #     self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
 
     ## handle data update event, i.e. a slider changed.
-    #def handle_slider_update(self):
-    #    fromVal = self.startSlider.get()
-    #    endVal = self.endSlider.get()
-    #    self.startlabel["text"] = "FROM \t"+str(self.dates[fromVal])
-    #    self.endlabel["text"] = "TO \t"+str(self.dates[endVal])
-    #    self.trigger_update(level=self.PLOT_DATA)
-    #    self.last_action = time()
-    #    self.action_str = "New time interval: "+str(self.dates[fromVal])+" - "+str(self.dates[endVal])
+    def handle_selector_change(self,clause):
+        self.clause=clause
+
+        self.trigger_update(level=self.PLOT_DATA)
+        self.last_action = time()
+        self.action_str = "New selection: "+str(clause)
+
+
 
     ## a different parameter was chosen
     def handle_paramsChanged(self, e):
@@ -397,6 +460,7 @@ class VisAnaGUI(tk.LabelFrame):
     ## is called to to do something when the mouse hovers over the plot and has changed its position.
     ## if no mousebutton is pressed and no points were selected, a hover-tooltip is shown.
     ## if the left button is pressed, (re-)draw the selection indicator
+    i=1
     def handle_hover(self, mouseevent):
         if not mouseevent.button in [1,3] and self.select_rect is None:
             isover, props = self.handle_mouse_event(mouseevent)
@@ -577,11 +641,17 @@ class VisAnaGUI(tk.LabelFrame):
         ## create value for each day in data,
         ## depending on whether it is selected, shown etc.
         #shown_dates = self.build_contained_dict(df)
+        if self.aggregation_limit <= self.mininterval:
+            self.ds.aggregateTime("all_days", "COUNT", self.mininterval, "base")
+        else:
+            self.ds.aggregateTime("all_days", "COUNT", self.aggregation_limit, "base")
 
         selected_dates=[]
         if self.select_rect is not None:
             print("b",self.ds.exists("selected"))
-            self.ds.groupby("selected_days", datasource.TIME_ATTR, "COUNT", "selected", bydate=True)
+            #self.ds.groupby2("selected_days", datasource.TIME_ATTR, "COUNT", "selected", bydate=True)
+            #self.ds.aggregateTime("selected_days", "COUNT",24*60, "selected")
+            self.ds.aggregateTime("selected_days", "COUNT",1, "selected")
             selected_dates = self.df("selected_days").index.values
         shown_dates=self.df("shown_dates").index.values
 
@@ -595,15 +665,20 @@ class VisAnaGUI(tk.LabelFrame):
         ## prepare data for timeline
         days = []
         values = []
+        #print(self.df("all_days").head(2))
 
-        for day in self.df("all_days").index.values:
-            if self.df("all_days")[self.param1][day]>0 and self.df("all_days")[self.param2][day]>0:
-                days.append(day)
+        #self.df("all_days").
+        for date in self.df("all_days").index.values:
+            self.df("all_days")
+            col1_has_values=((self.param1 == datasource.TIME_ATTR) or (self.df("all_days")[self.param1][date]>0))
+            col2_has_values=((self.param2 == datasource.TIME_ATTR) or (self.df("all_days")[self.param2][date]>0))
+            if col1_has_values and col2_has_values:
+                days.append(date)
                 ##if random() < 0.01:
                 #if self.dates[self.startSlider.get()] <= day < self.dates[self.endSlider.get()]:
-                if day in shown_dates:
+                if date in shown_dates:
                     values.append("blue")
-                    if day in selected_dates:
+                    if date in selected_dates:
                         #if random() < 0.05:
                         values.append("red")
                 else:
@@ -701,14 +776,28 @@ class VisAnaGUI(tk.LabelFrame):
             #self.ds.select(out_table="time-limited", attr_name=datasource.TIME_ATTR,
             #    a=self.dates[fromVal], b=self.dates[endVal], in_table="after_tidyup")
             #self.df = self.ds.get_data("time_filter").df()
+            self.ds.select_complex("sel",self.clause, "base")
             if self.aggregation_limit==1:
-                self.ds.link("show", "base")
+                self.ds.link("show", "sel")
             else:
-                self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="base")
-            self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
+                self.ds.aggregateTime(out_table="show", mode="AVG", minutes=self.aggregation_limit, in_table="sel")
+                #self.ds.aggregate(out_table="show", mode="AVG", limit=self.aggregation_limit, in_table="base")
+            #self.ds.groupby("shown_dates",datasource.TIME_ATTR, "COUNT", "show", bydate=True)
+            self.ds.aggregateTime("shown_dates","COUNT", self.aggregation_limit, in_table="sel")
+            #self.ds.aggregateTime("shown_dates","COUNT", 24*60,"show")
         #        try:
         if self.unprocessed_action>=self.PLOT:
-            self.draw_plot()
+            if self.mode == self.PLOT_MODE:
+                print("draw normal plots")
+                self.draw_plot()
+            elif self.mode == self.ANALYTICS_MODE:
+                print("draw cluster plots")
+                if self.plot_type == self.SMALL_MULTIPLES:
+                    print("\tdraw small multiples")
+                    self.create_multiple_plots()
+                elif self.plot_type == self.SMALL_HISTOS:
+                    print("\tdraw small histograms")
+                    self.create_distr_plots()
 
         self.draw_timeline()
         #print("add_to_history:",self.action_str)
@@ -718,6 +807,166 @@ class VisAnaGUI(tk.LabelFrame):
         #            pass
         self.unprocessed_action=self.NOTHING
 
+    def create_distr_plots(self):
+        self.clean_tooltip(True)
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+        self.ax = self.fig.add_subplot(111) #type:Axes
+
+        #subplot_num = 0
+        #print(self.centroids)
+        y_pos = np.arange(len(self.c_param_list))
+        #print(y_pos)
+        width = 0.95/self.cluster_k
+        #colors = ["#d62728", "blue", "green", "brown"]
+        for c in range(0, self.cluster_k):
+            #subplot_num += 1
+            ystdev = []
+            one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == c]
+
+            #for i in range(0, len(datasource.GRAIN_COLS)):
+            for i in range(0, len(self.c_param_list)):
+                col = one_value_cluster[self.c_param_list[i]]
+                stdev = np.std(col)
+                ystdev.append(stdev)
+
+            cen = [self.centroids[c][i] for i in range(0, len(self.c_param_list))]
+            ## cluster label for legend 
+            c_label = "Cluster "+str(c)
+            self.ax.bar(y_pos + width*(c-(self.cluster_k/2.3)), cen, width, align="center", alpha=0.75, color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+        self.ax.grid(True)
+        #self.ax.set_xticklabels
+        #self.ax.set_ylim(0, 1, emit=False)
+        max_y_val = max(map(max, self.centroids))
+        self.ax.set_ylim(0, max_y_val+0.1, emit=False)
+
+        self.ax.set_xticks(y_pos + width / 4)
+        self.ax.set_xticklabels(self.c_param_list)
+
+        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+        self.ax.callbacks.connect('ylim_changed', self.handle_view_change) 
+        
+        ## add legend
+        self.ax.legend(loc="upper right", shadow=True)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
+
+        #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        #self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+        #self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+
+        # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
+        #self.ctbwidget=tk.Frame(self)
+        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+
+        util.zoom_factory(self.ax)
+
+        self.fig.tight_layout(pad=0)
+        self.canvas.draw()
+
+        #print("DISTRIBUTIONS PLOTTED")
+
+
+    #add an empty plot to the GUI
+    def create_multiple_plots(self):
+        self.clean_tooltip(True)
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+
+        param_combos = []
+        subplot_num = 0
+        paraLen = len(self.c_param_list)
+        axarr = [[]]
+        dummy = [[]]
+        sharey = {}
+
+        for qi in range(0, paraLen):
+            q = self.c_param_list[qi]
+            #subplot_num = ((subplot_num%10)*10)+111
+            #print("subplot_num=",str(subplot_num))
+            for pi in range(0, paraLen):
+                #print("qi =",str(qi))
+                p = self.c_param_list[pi]
+                #subplot_num += 1
+                if pi < qi:#not p == q: 
+                    subplot_num = (qi-1)*(paraLen-1) + (pi+1)
+                    print(subplot_num)
+                    #print("\tsubplot_num=",str(subplot_num))
+                    param_combos.append((p,q))
+                    x = self.df("clustered")[p]
+                    y = self.df("clustered")[q]
+                    print("pi=",str(pi),"qi=",str(qi))
+                    #if qi>0 & pi>0:
+                    #    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=axarr[0][pi-1], sharey=axarr[qi][0])
+                    #if qi>1:
+                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=sharex[pi])
+                    #if pi>1:
+                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
+                    #else:
+                    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num) 
+
+                    #if pi==0:
+                    #    print("add sharey for",str(qi))
+                    #    sharey[qi] = ax1
+
+                    #print(self.centroids[1,0])
+                    for i in range(self.cluster_k):
+                        one_value_cluster = self.df("clustered").loc[self.df("clustered")['clusterlabels'] == i]
+                        ax1.scatter(one_value_cluster[self.c_param_list[pi]], one_value_cluster[self.c_param_list[qi]], color=COLORS[i], marker=".", alpha=0.1, s=2)
+                        #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
+                        ax1.plot(self.centroids[i][pi],self.centroids[i][qi],'kx')
+
+                    #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+
+                    if qi == paraLen-1:
+                        paraLabel = p
+                        if "GRAIN_CLASS" in p: #custom class
+                            paraLabel = "CLASS"+p[-1]
+                        ax1.set_xlabel(paraLabel)
+                    else:
+                        ax1.set_xticklabels([])
+
+                    if pi == 0:
+                        paraLabel = q
+                        if "GRAIN_CLASS" in q: #custom class
+                            paraLabel = "CLASS"+q[-1]
+                        ax1.set_ylabel(paraLabel)
+                    else:
+                        ax1.set_yticklabels([])
+
+                    ax1.grid(True)
+                    ax1.set_xlim(x.min(), x.max(), emit=False)
+                    ax1.set_ylim(y.min(), y.max(), emit=False)
+                    #ax1.callbacks.connect('xlim_changed', self.handle_view_change)
+                    #ax1.callbacks.connect('ylim_changed', self.handle_view_change) 
+                    #axarr[-1].append(ax1)
+                    #dummy[-1].append(0)
+                    #if pi == paraLen-1:
+                    #    axarr.append([])
+                    #    dummy.append([])
+                    #print(axarr)
+
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
+
+        #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+        #self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+        #self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+
+        self.canvas.get_tk_widget().grid(column=1, row=3, sticky=(tk.N, tk.E, tk.W, tk.S))
+
+        # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
+        #self.ctbwidget=tk.Frame(self)
+        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+
+        util.zoom_factory(self.ax)
+
+        self.fig.tight_layout(pad=0)
+        self.canvas.draw()
 
     ## update view with specified data
     def draw_plot(self):
@@ -725,12 +974,14 @@ class VisAnaGUI(tk.LabelFrame):
         self.clean_tooltip(True)
         self.ax.clear()
         self.ax.grid(True)
-        x=self.df("show")[self.param1]
-        y=self.df("show")[self.param2]
-        if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
-            self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
-        else:
-            self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+        x=self.ds.get_data("show").get_column(self.param1)
+        y=self.ds.get_data("show").get_column(self.param2)
+        #if self.param1 == datasource.TIME_ATTR or self.param2 == datasource.TIME_ATTR:
+        #    #self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
+        #    self.plot = self.ax.scatter(x=x, y=y, picker=self.handle_pick)
+        #else:
+        self.plot=self.ax.scatter(x=x, y=y, marker="o",color="black", s=4, alpha=0.2,linewidths=0,
+                                  picker=self.handle_pick)
 
         self.ax.set_xlabel(self.param1)
         self.ax.set_ylabel(self.param2)

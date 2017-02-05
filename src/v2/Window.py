@@ -5,12 +5,12 @@ from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
 import datasource
 import  tkinter.ttk as ttk
 
-from v2.CustomClasses import CustomClasses
-from v2.DataTasks import Calculator, ALL
-from v2.History import HistoryView
-from v2.Options import Options
-from v2.SimpleScatter import SimpleScatter
-from v2.Timeline import Timeline
+from CustomClasses import CustomClasses
+from DataTasks import ALL, Calculator
+from History import HistoryView
+from Options import Options
+from SimpleScatter import SimpleScatter
+from Timeline import Timeline
 
 
 class VisAnaWindow(tk.Frame):
@@ -61,7 +61,7 @@ class VisAnaWindow(tk.Frame):
 
     def drawParts(self):
         # draw Timeline
-        self.timeline=Timeline(self)
+        self.timeline= Timeline(self)
         self.timeline.grid(column=0,row=0,columnspan=2, sticky=(tk.N,tk.W,tk.E))
 
         #draw Graph Multiview
@@ -73,7 +73,7 @@ class VisAnaWindow(tk.Frame):
         self.sidepane_r.grid(column=1, row=1, sticky=(tk.N,tk.E,tk.S))
 
         #add clustering options
-        self.options = Options(self.sidepane_r,self)
+        self.options = Options(self.sidepane_r, self)
         self.sidepane_r.add(self.options, text="Options")
 
         #add history

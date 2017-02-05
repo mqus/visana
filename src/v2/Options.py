@@ -3,7 +3,7 @@ from tkinter import N,E,W,S
 from tkinter import ttk
 
 from Selector import Selector
-from v2.DataTasks import AGGREGATOR, SELECTOR
+from DataTasks import AGGREGATOR, SELECTOR
 #from v2.Window import VisAnaWindow
 
 
@@ -19,7 +19,7 @@ class Options(tk.Frame):
         self.clause = None
 
 
-        self.select=Selector(self, self.ds, self.apply_select)
+        self.select= Selector(self, self.ds, self.apply_select)
         self.select.grid(column=0, row=0, sticky=(E, W,N), columnspan=2)
 
         # draw aggregation setter
@@ -76,7 +76,7 @@ class Options(tk.Frame):
     def ds_changed(self):
         self.ds=self.window.ds
         self.select.destroy()
-        self.select=Selector(self, self.ds, self.apply_select)
+        self.select= Selector(self, self.ds, self.apply_select)
         self.select.grid(column=0, row=0, sticky=(E, W,N), columnspan=2)
 
     def get_n(self):
