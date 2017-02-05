@@ -27,7 +27,7 @@ class CustomClasses(Frame):
         self.remaining_grains = self.window.ds.get_grain_columns()
 
         ## selection box with all grain sizes
-        self.grainListBox = Listbox(self, selectmode="multiple", height=32)
+        self.grainListBox = Listbox(self, selectmode="extended", height=32)
         for col in self.window.ds.get_grain_columns():
             self.grainListBox.insert(END, col)
         self.grainListBox.grid(row=1, column=0, rowspan=10)
