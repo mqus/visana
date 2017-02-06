@@ -5,7 +5,7 @@ from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
 import datasource
 import  tkinter.ttk as ttk
 
-from CakePlot import Pie
+from PiePlot import Pie
 from CustomClasses import CustomClasses
 from DataTasks import ALL, Calculator, SELECTOR
 from Histogram import Histogram
@@ -122,6 +122,7 @@ class VisAnaWindow(tk.Frame):
             if filename is None:
                 return
         self.ds = datasource.DataSource()
+        self.history.add("Opened file: {}".format(filename))
         self.ds.read_data(filename)
 
         self.calc.ds_changed()
