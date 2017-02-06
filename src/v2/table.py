@@ -18,7 +18,7 @@ class DataTable:
 			anchor=np.datetime64('2000-01-01T00:00')
 			day=np.timedelta64(1, 'D')
 			since2k=self.table.index.values - anchor #type:np.ndarray
-			self.table["Daytime"] = np.remainder(since2k/day,1)*1440
+			self.table["Daytime"] = np.rint(np.remainder(since2k/day,1)*1440)
 
 		if centroids is not None:
 			self.centroids=centroids

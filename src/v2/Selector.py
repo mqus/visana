@@ -5,7 +5,7 @@ from tkinter.ttk import Combobox, Entry
 
 class Selector(LabelFrame):
     LIMIT=1000
-    COMPARATORS=("<","<=","=","=>",">")
+    COMPARATORS=("<","<=","=","=>",">", "!=")
     def __init__(self,parent,ds, apply_action):
         super(Selector,self).__init__(parent, text="1: restrict/tidy up data")
 
@@ -90,7 +90,7 @@ class Selector(LabelFrame):
         #TODO:validate
         sv = StringVar()
         sv.trace("w", lambda name, index, mode, sv=sv, i=i, j=id: self.value_changed(sv,i,j))
-        cval=Entry(frame, width=20, textvariable=sv)
+        cval=Entry(frame, width=10, textvariable=sv)
         cval.grid(column=2, row=1, sticky=(N, E, W))
         #cval.bind('<Key>', lambda ev,j=i, k=id: self.value_changed(j,k))
 
@@ -105,7 +105,7 @@ class Selector(LabelFrame):
         self.entire_clause[i][id]=dict()
 
 
-        print("fun",i, "and" , id)
+        #print("fun",i, "and" , id)
         return id
 
     def delete_outer_clause(self,i):
@@ -118,7 +118,7 @@ class Selector(LabelFrame):
 
         frame.destroy()
 
-        print("nofun",i)
+        #print("nofun",i)
 
 
     def delete_inner_clause(self,i,j):
@@ -128,9 +128,12 @@ class Selector(LabelFrame):
         frame.destroy()
 
     def apply(self):
-        c=deepcopy(self.entire_clause)
-        print(type(c),c)
-        self.apply_action(c)
+#        print(type(c),c)
+        self.apply_action()
+
+    def get_clause(self):
+        return deepcopy(self.entire_clause)
+
 
     def param_changed(self,i,j):
         pb = self.all_inner_clauses[i][j]["param"] #type:Combobox
@@ -145,3 +148,22 @@ class Selector(LabelFrame):
 
 
 
+def tostr(clause):
+    s = "("
+    once1=True
+    for i in clause:
+        if once1:
+            once1=False
+        else:
+            s += ") OR ("
+        once2=True
+        for j in clause[i]:
+            if once2:
+                once2 = False
+            else:
+                s += " AND "
+            s+= clause[i][j]["param"]
+            s+= clause[i][j]["comp"]
+            s+= clause[i][j]["val"]
+    s += ")"
+    return s

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-pushd src >/dev/null
-python3 UI.py
+pushd src/v2 >/dev/null
+python3 Window.py
 popd >/dev/null

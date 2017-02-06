@@ -2,6 +2,7 @@
 
 # update levels, each level includes all lower ones
 # Controls on the left
+from Selector import tostr
 from datasource import DataSource
 #import v2.Window
 ALL=20
@@ -57,22 +58,26 @@ class Calculator:
         if level>=SELECTOR:
             i+=1
             self.window.status.set(str(i)+": Apply Selector...")
-            clause = self.window.options.clause
+            clause = self.window.select.get_clause()
             if clause is None:
                 self.ds.link("selector","base")
+                self.addToHistory(i,SELECTOR,False)
             else:
                 print("select",clause)
                 self.ds.select_complex("selector", clause, "base" )
+                self.addToHistory(i,SELECTOR,True,clause)
 
         if level >= AGGREGATOR:
             i+=1
             agg_level = self.window.options.get_n()
             if agg_level <= 1:
                 self.ds.link("aggregator","selector")
+                self.addToHistory(i,AGGREGATOR,False)
             else:
                 print("aggre",agg_level)
                 self.window.status.set("{}: Aggregate Values over {} minutes".format(i, agg_level))
                 self.ds.aggregateTime("aggregator", "AVG", agg_level, "selector")
+                self.addToHistory(i,AGGREGATOR,True,agg_level)
 
         if level >= NORMALIZE:
             i+=1
@@ -81,41 +86,44 @@ class Calculator:
                 print("norm",params)
                 self.window.status.set("{}: normalize all grainsize columns".format(i))
                 self.ds.normalize("normalize", params, "aggregator")
+                self.addToHistory(i,NORMALIZE, True)
             else:
                 self.ds.link("normalize", "aggregator")
+                self.addToHistory(i, NORMALIZE, False,)
         if level >= CLASSBUILDER:
             i+=1
             params = self.custom_classes
             self.class_params = params
             if params is None or len(params)==0:
                 self.ds.link("newclasses","normalize")
+                self.addToHistory(i,CLASSBUILDER,False)
             else:
                 print("newclass",params)
                 self.window.status.set("{}: Create merge parameters into {} new classes".format(i, len(params)))
                 self.ds.newcols("newclasses","SUM",params, "normalize")
+                self.addToHistory(i,CLASSBUILDER,True,params)
+
 
         if level >= CLUSTER:
             i+=1
             k = self.window.options.get_k()
-            # TODO get PARAMS #UI Issue
-            # temporarily take customclasses or get_all_columns
-            # if self.custom_classes is None or len(self.custom_classes)==0:
-            #     params=self.get_all_columns()
-            # else:
-            #     params=[k for k in self.custom_classes]
-            #params = ["small", "large"]
             params = self.window.options.get_cluster_params()
+
             if k<=1 or params is None or len(params) == 0:
                 self.cluster_params=[]
                 self.ds.link("cluster","newclasses")
+                self.addToHistory(i,CLUSTER,False)
             else:
                 print("cluster",k,params)
                 self.cluster_params=params
                 self.window.status.set("{}: Search for k={} clusters by applying k-means on {} parameters"
                                         .format(i, k, len(params)))
                 self.ds.cluster("cluster",k,params,"newclasses")
+                self.addToHistory(i, CLUSTER, True, k,params)
         if level >= PLOT:
+            i+=1
             self.window.redo_plots()
+            self.addToHistory(i,PLOT, True)
 
 
     def get_all_columns(self, with_time=False):
@@ -132,5 +140,38 @@ class Calculator:
 
 
 
+    def addToHistory(self, i, level, done, s1=None, s2=None):
+        if i ==1:
+            self.window.history.add("Recalculate Clusters:")
+        s = "  "+str(i)+". "
+        if level is SELECTOR:
+            if done:
+                s += "restricted values to: "+tostr(s1)
+            else:
+                s += "used all of basedata"
+        if level is AGGREGATOR:
+            if done:
+                s += "built average of {} minutes".format(s1)
+            else:
+                s += "didn't aggregate"
+        if level is NORMALIZE:
+            if done:
+                s += "normalized grainsize columns of each row"
+            else:
+                s += "used absolute values"
+        if level is CLASSBUILDER:
+            if done:
+                s += "created custom grain classes: {}".format(s1)
+            else:
+                s += "didn't create any custom classes"
+        if level is CLUSTER:
+            if done:
+                s += "searched for k={} means of the features {}".format(s1,s2)
+            else:
+                s += "didn't cluster"
+        if level is PLOT:
+            s+="redrawed Plots"
+
+        self.window.history.add(s)
 
 

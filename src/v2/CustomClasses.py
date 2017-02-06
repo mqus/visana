@@ -1,6 +1,6 @@
-from tkinter import E, S, Listbox, END, Message, NORMAL, DISABLED
+from tkinter import E, S, Listbox, END, Message, NORMAL, DISABLED, VERTICAL
 from tkinter import N, W
-from tkinter.ttk import Frame, Label, Button
+from tkinter.ttk import Frame, Label, Button, Scrollbar
 
 
 class CustomClasses(Frame):
@@ -15,7 +15,7 @@ class CustomClasses(Frame):
             return
 
         label = Label(self, text="Select Sizes for new Class:")
-        label.grid(row=0, column=0)
+        label.grid(row=0, column=0, columnspan=2)
 
         ## save results to dictionary
         self.classesDict = {}
@@ -27,25 +27,28 @@ class CustomClasses(Frame):
         self.remaining_grains = self.window.ds.get_grain_columns()
 
         ## selection box with all grain sizes
-        self.grainListBox = Listbox(self, selectmode="extended", height=32)
+        self.grainListBox = Listbox(self, selectmode="extended", height=20, width=15)
         for col in self.window.ds.get_grain_columns():
             self.grainListBox.insert(END, col)
         self.grainListBox.grid(row=1, column=0, rowspan=10)
+        scrbar = Scrollbar(self, orient=VERTICAL, command=self.grainListBox.yview)
+        scrbar.grid(row=1, column=1, rowspan=10,sticky=(N, W, S))
+        self.grainListBox["yscrollcommand"] = scrbar.set
 
         ## button to add selected sizes to new class
         self.b_add = Button(self, text='Add to new Class', width=19)
         self.b_add['command'] = self.add_class
-        self.b_add.grid(row=11, column=0)
+        self.b_add.grid(row=11, column=0, columnspan=2)
 
         ## button to add all remaining entries to a new class
         self.b_remaining = Button(self, text='Add remaining to Class', width=19)
         self.b_remaining['command'] = self.add_remaining
-        self.b_remaining.grid(row=12, column=0)
+        self.b_remaining.grid(row=12, column=0, columnspan=2)
 
         ## button to reset all previous selections
         self.b_reset = Button(self, text='Reset', width=17)
         self.b_reset['command'] = self.reset
-        self.b_reset.grid(row=13, column=0)
+        self.b_reset.grid(row=13, column=0, columnspan=2)
 
         # self.b_accept = Button(self, text='Save')
         # self.b_accept['command'] = self.accept
@@ -69,7 +72,7 @@ class CustomClasses(Frame):
 
         ## remove all widgets in result column...
         for label in self.grid_slaves():
-            if int(label.grid_info()["column"]) == 1:
+            if int(label.grid_info()["column"]) == 2:
                 label.destroy()
         ##reset ClassLabel
         self.classLabel=1
@@ -81,7 +84,7 @@ class CustomClasses(Frame):
     ## add selected grain sizes to new class
     def add_class(self):
         selected = self.grainListBox.curselection()
-        print(selected)
+        #print(selected)
         if len(selected) > 0:
             selectedCols = []
             for i in selected:
@@ -118,18 +121,18 @@ class CustomClasses(Frame):
 
     def print_classes(self):
         frm=Frame(self)
-        frm.grid(column=1, row=1,rowspan=20)
+        frm.grid(column=2, row=1,rowspan=20, sticky = (N,E,W,S))
 
         rowOffset = 0
         label = Label(self, text="Grain Classes:")
-        label.grid(row=rowOffset, column=1)
+        label.grid(row=rowOffset, column=2)
         for k in sorted(self.classesDict.keys()):
             rowOffset += 1
             classDescr = "" + k + ":"
             for grain in self.classesDict[k]:
                 classDescr = classDescr + "\n" + grain
             classMsg = Message(frm, text=classDescr)#, width=100)
-            classMsg.grid(column=1, row=rowOffset)
+            classMsg.grid(column=0, row=rowOffset, sticky = (N,W))
 
         #print("GRAIN_COLS:")
         #print(GRAIN_COLS)

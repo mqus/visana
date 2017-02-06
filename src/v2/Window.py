@@ -5,12 +5,14 @@ from tkinter import Scale, HORIZONTAL, Listbox, Spinbox, StringVar
 import datasource
 import  tkinter.ttk as ttk
 
+from CakePlot import Pie
 from CustomClasses import CustomClasses
-from DataTasks import ALL, Calculator
+from DataTasks import ALL, Calculator, SELECTOR
 from Histogram import Histogram
 from History import HistoryView
 from MultiScatter import MultiScatter
 from Options import Options
+from Selector import Selector
 from SimpleScatter import SimpleScatter
 from Timeline import Timeline
 
@@ -43,6 +45,7 @@ class VisAnaWindow(tk.Frame):
 
         ##MUSSWEG TODO
         self.open_file("../../data/dust-32-grain-size-classes-2014.dat")
+        #self.open_file("../../data/dust-2014-v2.dat")
 
 
 
@@ -71,8 +74,8 @@ class VisAnaWindow(tk.Frame):
         self.graphs.grid(column=0, row=1, sticky=(tk.N,tk.W,tk.E,tk.S))
 
         #draw history/clusteroptions multiview
-        self.sidepane_r=ttk.Notebook(self)
-        self.sidepane_r.grid(column=1, row=1, sticky=(tk.N,tk.E,tk.S))
+        self.sidepane_r=ttk.Notebook(self, width=250)
+        self.sidepane_r.grid(column=1, row=1, sticky=(tk.N,tk.E,tk.S, tk.W))
         self.sidepane_r.bind("<Configure>", print)
 
         #add clustering options
@@ -85,7 +88,12 @@ class VisAnaWindow(tk.Frame):
 
         #add custom classes
         self.customclasses= CustomClasses(self.sidepane_r, self)
-        self.sidepane_r.add(self.customclasses, text="Custom Grain Classes")
+        self.sidepane_r.add(self.customclasses, text="Grain Classes")
+
+        self.select= Selector(self.sidepane_r, self.ds, self.apply_select)
+        self.sidepane_r.add(self.select, text="tidy up data")
+#        self.select.grid(column=0, row=0, sticky=(tk.E, tk.W, tk.N), columnspan=2)
+
 
         #simple Scatterplot
         self.scatter = SimpleScatter(self.graphs, self)
@@ -99,19 +107,14 @@ class VisAnaWindow(tk.Frame):
         self.mscatter = MultiScatter(self.graphs, self)
         self.graphs.add(self.mscatter, text="Small Multiples - Scatterplot")
 
+        #add Cake plot
+        self.pie = Pie(self.graphs, self)
+        self.graphs.add(self.pie, text="Pie-Chart")
+
         self.status=StringVar(self)
         ttk.Label(self,textvariable=self.status, justify="left")\
             .grid(column=0, row=2, columnspan=2, sticky=(tk.E,tk.W,tk.S))
 
-
-    # def redraw_parts(self):
-    #     if not self.timeline is None:
-    #         self.timeline.destroy()
-    #     if not self.graphs is None:
-    #         self.graphs.destroy()
-    #     if not self.sidepane_r is None:
-    #         self.sidepane_r.destroy()
-    #     #TODO draw
 
     def open_file(self, filename=None):
         if filename is None:
@@ -127,11 +130,16 @@ class VisAnaWindow(tk.Frame):
         self.scatter.ds_changed()
         self.hist.ds_changed()
         self.mscatter.ds_changed()
+        self.pie.ds_changed()
 
         self.customclasses.destroy()
         self.customclasses= CustomClasses(self.sidepane_r, self)
-        self.sidepane_r.add(self.customclasses, text="Custom Grain Classes")
+        self.sidepane_r.add(self.customclasses, text="Grain Classes")
         self.calc.cclasses_changed(dict())
+
+        self.select.destroy()
+        self.select= Selector(self.sidepane_r, self.ds, self.apply_select)
+        self.sidepane_r.add(self.select, text="tidy up data")
 
         self.calc.recalc(ALL)
 
@@ -141,9 +149,13 @@ class VisAnaWindow(tk.Frame):
         self.scatter.cluster_changed("cluster")
         self.hist.cluster_changed("cluster")
         self.mscatter.cluster_changed("cluster")
+        self.pie.cluster_changed("cluster")
 
 
+    #From Selector
+    def apply_select(self):
 
+        self.calc.recalc(SELECTOR)
 
 
 root = tk.Tk()

@@ -1,58 +1,56 @@
 from tkinter import Frame, Label, StringVar, N, E, W, S, Spinbox
 from tkinter.ttk import Combobox, LabelFrame, Checkbutton, Button
 
+import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 import pandas as pd
+from pandas import DataFrame
 from sklearn.linear_model import LinearRegression
 
 import util
 from datasource import DataSource, COLORS
 
 
-#from v2.Window import VisAnaWindow
+# from v2.Window import VisAnaWindow
 
 
 
-class Histogram(Frame):
-    def __init__(self,parent,master):
-        super(Histogram,self).__init__(parent)
-        self.window=master #type:VisAnaWindow
-        self.parent=parent
+class Pie(Frame):
+    def __init__(self, parent, master):
+        super(Pie, self).__init__(parent)
+        self.window = master  # type:VisAnaWindow
+        self.parent = parent
 
-        self.param_y=None;self.param_x=None
 
-        self.ds=self.window.ds #type:DataSource
+        self.ds = self.window.ds  # type:DataSource
 
-        self.columnconfigure(1,weight=1)
-        self.rowconfigure(1,weight=1)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(1, weight=1)
 
         self.tframe = LabelFrame(self, text="Tooltip")
-        #self.tframe.grid(column=0, row=1, sticky=(S,W,N,E))
-        self.tframe.rowconfigure(0,weight=1)
-        self.tframe.columnconfigure(0,weight=1)
+        # self.tframe.grid(column=0, row=1, sticky=(S,W,N,E))
+        self.tframe.rowconfigure(0, weight=1)
+        self.tframe.columnconfigure(0, weight=1)
         self.tooltip = StringVar(self.tframe)
-        self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
+        self.tlabel = Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
         self.tlabel.grid(column=0, row=0, sticky=(W, N))
 
-        #self.create_plot()
+        # self.create_plot()
 
-        self.select_rect=None
-        #MAYBE: retain plot view when switching regression on/off
-        #self.plotbox=(None,None,None,None)
+        self.select_rect = None
+        # MAYBE: retain plot view when switching regression on/off
+        # self.plotbox=(None,None,None,None)
 
         if self.ds is None:
-            self.settings=Label(self,text="No data, please open a file via File -> Open")
-            self.settings.grid(column=1, row=1, sticky=(S,W,N,E))
+            self.settings = Label(self, text="No data, please open a file via File -> Open")
+            self.settings.grid(column=1, row=1, sticky=(S, W, N, E))
             return
 
-        self.settings=HControls(self,self.ds.base().get_attr_names())
-        self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
+        self.settings = PControls(self, self.ds.base().get_attr_names())
+        self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
         self.apply_settings()
-
-
-
 
     # def create_plot(self):
     #     self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
@@ -84,14 +82,14 @@ class Histogram(Frame):
     ###################
     # PLOT-EVENT HANDLER
     def handle_changed_axes(self, ev=None):
- 
+
         self.clean_tooltip()
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
-        self.xmin=xlim[0]
-        self.xmax=xlim[1]
-        self.ymin=ylim[0]
-        self.ymax=ylim[1]
+        self.xmin = xlim[0]
+        self.xmax = xlim[1]
+        self.ymin = ylim[0]
+        self.ymax = ylim[1]
         text = "Focus changed to: x=[{:.1f};{:.1f}] and y=[{:.1f};{:.1f}]".format(xlim[0], xlim[1], ylim[0], ylim[1])
 
         self.window.history.add(text)
@@ -169,12 +167,12 @@ class Histogram(Frame):
                     self.ds.select("ss_selected", self.param_y, ymin, ymax, "ss_selected")
                     ind = self.ds.df("ss_selected").index.values
                     if len(ind) > 0:
-                        text = "Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})"\
-                                                        .format(xmin,ymin,xmax,ymax)
+                        text = "Selected area from ({:.1f}; {:.1f})\n\t to ({:.1f}; {:.1f})" \
+                            .format(xmin, ymin, xmax, ymax)
                         self.draw_tooltip(mouseevent, ind, True)
                         self.window.history.add(text)
-                        #TODO
-                        #self.trigger_update(level=self.TIMELINE_SELECTION)
+                        # TODO
+                        # self.trigger_update(level=self.TIMELINE_SELECTION)
                     else:
                         self.clean_tooltip(True)
                 else:
@@ -222,7 +220,7 @@ class Histogram(Frame):
     def draw_tooltip(self, event, ind=None, selected=False):
         if ind is None:
             ind = event.ind
-            #event = event.mouseevent
+            # event = event.mouseevent
 
         # Generate the Tooltip-String
         selstr = ""
@@ -242,9 +240,8 @@ class Histogram(Frame):
             self.ds.aggregate("ss_sel_aggremax", "MAX", in_table="ss_selected")
 
             for col, cdata in self.ds.df("ss_sel_aggremin").iteritems():
-                #text += '\n{}:\n  min:\t{}\n  max:\t{}'.format(col, cdata[0], self.ds.df("ss_sel_aggremax")[col][0])
+                # text += '\n{}:\n  min:\t{}\n  max:\t{}'.format(col, cdata[0], self.ds.df("ss_sel_aggremax")[col][0])
                 text += '\n{}: {} to {}'.format(col, cdata[0], self.ds.df("ss_sel_aggremax")[col][0])
-
 
         # write the tooltip
         self.tooltip.set(text)
@@ -292,11 +289,10 @@ class Histogram(Frame):
         if with_select_rect and self.select_rect is not None:
             self.canvas.get_tk_widget().delete(self.select_rect)
             self.select_rect = None
-            #if emit:
-                #self.action_str = None
-                #TODO
-                #self.trigger_update(self.TIMELINE_SELECTION)
-
+            # if emit:
+            # self.action_str = None
+            # TODO
+            # self.trigger_update(self.TIMELINE_SELECTION)
 
     #### Handle Signals from Outside
 
@@ -305,118 +301,118 @@ class Histogram(Frame):
 
         self.redraw_plot()
 
-
     def redraw_plot(self):
-        self.window.status.set("Redraw Histogram...")
+        self.window.status.set("Redraw Piechart...")
         self.draw_plot()
         self.window.status.set("")
 
-
-
     # the underlying data changed, called by VisAnaWindow.openFile
     def ds_changed(self):
-        olds=self.ds
+        olds = self.ds
         self.ds = self.window.ds
         if olds is None:
             self.settings.destroy()
             newcols = self.window.calc.get_all_columns(with_time=True)
-            self.settings = HControls(self, newcols)
+            self.settings = PControls(self, newcols)
             self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
 
-            #self.cluster_changed("base")
+            # self.cluster_changed("base")
 
     def cluster_changed(self, in_table):
-        #TODO what to do when graph not seen?
-        #TODO multiple Graphs
-        newcols=self.window.calc.get_all_columns(with_time=True)
-        #self.settings.set_new_cols(newcols)
+        # TODO what to do when graph not seen?
+        # TODO multiple Graphs
+        newcols = self.window.calc.get_all_columns(with_time=True)
+        # self.settings.set_new_cols(newcols)
 
         self.ds.link("ss_show", in_table)
 
         self.apply_settings()
 
-        #sync settings and redraw plot
-        #self.create_plot()
-
-
+        # sync settings and redraw plot
+        # self.create_plot()
 
     def draw_plot(self):
         self.clean_tooltip(True)
 
-        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
-        self.ax = self.fig.add_subplot(111) #type:Axes
+        self.fig = Figure(figsize=(5, 5), dpi=100)  # type:Figure
+        self.ax = self.fig.add_subplot(111)
 
         self.ax.clear()
         self.ax.grid(True)
         tabl = self.ds.get_data("cluster")
-        d = tabl.df()
+        d = tabl.df()                       #type:DataFrame
         if tabl.centroids is None:
             return
-        k=len(tabl.centroids)
-        cluster_params=self.window.calc.cluster_params
-        print("hist ", cluster_params)
+        k = len(tabl.centroids)
+        g = d.groupby(["_cluster"]).count()["Daytime"]
 
-        # subplot_num = 0
-        # print(self.centroids)
-        y_pos = pd.np.arange(len(cluster_params))
-        # print(y_pos)
-        width = 0.95 / k
-        # colors = ["#d62728", "blue", "green", "brown"]
-        for c in range(0, k):
-            # subplot_num += 1
-            ystdev = []
-            one_value_cluster = d.loc[d['_cluster'] == c]
+        print(g)
 
-            # for i in range(0, len(datasource.GRAIN_COLS)):
-            for i in range(0, len(cluster_params)):
-                col = one_value_cluster[cluster_params[i]]
-                stdev = pd.np.std(col)
-                ystdev.append(stdev)
+#        cluster_params = self.window.calc.cluster_params
+#        print("hist ", cluster_params)
+        s= '%f' % 99.2
+        lbls = ["Cluster "+str(i) for i in range(k)]
+        self.ax.pie(g,colors=COLORS,labels=lbls,autopct="%2.2f %%",pctdistance=0.8)
+        self.ax.axis("equal")
+        self.fig.suptitle("Cluster-Occurence in Data")
 
-            cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
-            ## cluster label for legend
-            c_label = "Cluster " + str(c)
-            self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,#alpha=0.75,
-                        color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
-        self.ax.grid(True)
+
+        # # subplot_num = 0
+        # # print(self.centroids)
+        # y_pos = pd.np.arange(len(cluster_params))
+        # # print(y_pos)
+        # width = 0.95 / k
+        # # colors = ["#d62728", "blue", "green", "brown"]
+        # for c in range(0, k):
+        #     # subplot_num += 1
+        #     ystdev = []
+        #     one_value_cluster = d.loc[d['_label'] == c]
+        #
+        #     # for i in range(0, len(datasource.GRAIN_COLS)):
+        #     for i in range(0, len(cluster_params)):
+        #         col = one_value_cluster[cluster_params[i]]
+        #         stdev = pd.np.std(col)
+        #         ystdev.append(stdev)
+        #
+        #     cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
+        #     ## cluster label for legend
+        #     c_label = "Cluster " + str(c)
+        #     self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,  # alpha=0.75,
+        #                 color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+        # self.ax.grid(True)
         # self.ax.set_xticklabels
         # self.ax.set_ylim(0, 1, emit=False)
-        max_y_val = max(map(max, tabl.centroids))
-        self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+        # max_y_val = max(map(max, tabl.centroids))
+        # self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+        #
+        # self.ax.set_xticks(y_pos + width / 4)
+        # self.ax.set_xticklabels(cluster_params)
 
-        self.ax.set_xticks(y_pos + width / 4)
-        self.ax.set_xticklabels(cluster_params)
-
-#        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
-#        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
+        #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+        #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
 
         ## add legend
-        self.ax.legend(loc="upper right", shadow=True)
+        #self.ax.legend(loc="upper right", shadow=True)
 
-        self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
+        self.canvas = FigureCanvasTkAgg(self.fig, self)  # type:FigureCanvasTkAgg
 
         self.canvas.get_tk_widget().grid(column=1, row=0, sticky=(N, E, W, S), rowspan=2)
 
 
-
-
-class HControls(LabelFrame):
+class PControls(LabelFrame):
     def __init__(self, parent, params):
-        super(HControls, self).__init__(parent,text="Histogram-Options")
-        self.params=params
-        self.parent=parent #type:SimpleScatter
+        super(PControls, self).__init__(parent, text="Histogram-Options")
+        self.params = params
+        self.parent = parent  # type:Pie
 
+        apply_changes = self.parent.apply_settings
 
-
-        apply_changes=self.parent.apply_settings
-
-        #logarithmic scale
+        # logarithmic scale
         self.lgvar = StringVar(value="0")
         self.log_cb = Checkbutton(self, text='logarithmic scale', command=apply_changes,
-                                         variable=self.lgvar)
-        self.log_cb.grid(column=0, row=1, sticky=(W, N), columnspan=2)
-
+                                  variable=self.lgvar)
+        #self.log_cb.grid(column=0, row=1, sticky=(W, N), columnspan=2)
 
     def doLog(self):
         return self.lgvar.get() is not "0"

@@ -283,7 +283,7 @@ class MultiScatter(Frame):
 
 
     def redraw_plot(self):
-        self.window.status.set("Redraw Plot...")
+        self.window.status.set("Redraw Small Multiples...")
         self.draw_plot()
         self.window.status.set("")
 
@@ -374,7 +374,7 @@ class MultiScatter(Frame):
                     #print(self.centroids[1,0])
                     for i in range(k):
                         if self.settings.clusel.draw_cluster(i):
-                            one_value_cluster = d.loc[d['_label'] == i]
+                            one_value_cluster = d.loc[d['_cluster'] == i]
                             ax1.scatter(one_value_cluster[cluster_params[pi]], one_value_cluster[cluster_params[qi]],
                                         color=COLORS[i], marker=".", alpha=self.alpha, s=self.s)
                         #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))

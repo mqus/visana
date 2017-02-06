@@ -55,7 +55,7 @@ class Timeline(ttk.Frame):
             #     ax.scatter(dates, [1]*len(dates), c=COLORS[i],
             #                marker='|', s=300)#, fontsize=10)
             #change COLORS to a numpy-array and then map each label to its color
-            colors = np.asarray(COLORS)[d["_label"]]
+            colors = np.asarray(COLORS)[d["_cluster"]]
             dates = d.index.values
             ax.scatter(dates, [1]*len(dates), c=colors,
                             marker='|', s=300)#, fontsize=10)

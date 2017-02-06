@@ -1,4 +1,5 @@
 from tkinter import Frame, Label, StringVar, N, E, W, S, Spinbox
+from tkinter.font import Font
 from tkinter.ttk import Combobox, LabelFrame, Checkbutton, Button, Notebook
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -32,33 +33,26 @@ class SimpleScatter(Frame):
         self.sidebar.grid(column=0, row=0, sticky=(S,W,N,E))
 
 
-        self.tframe = Frame(self.sidebar)
-        self.sidebar.add(self.tframe, text="Tooltip")
-        #self.tframe.grid(column=0, row=0, sticky=(S,W,N,E))
-        self.tframe.rowconfigure(0,weight=1)
-        self.tframe.columnconfigure(0,weight=1)
-        self.tooltip = StringVar(self.tframe)
-        self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
-        self.tlabel.grid(column=0, row=0, sticky=(W, N))
+        if self.ds is None:
+            self.settings=SSControls(self.sidebar, self,None)
+            self.sidebar.add(self.settings, text="Settings")
+
+            #self.settings.grid(column=1, row=0, sticky=(S,W,N,E))
+
+        else:
+            self.settings=SSControls(self.sidebar, self,self.ds.base().get_attr_names())
+            self.sidebar.add(self.settings, text="Settings")
+            #self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
+            self.param_x=self.settings.getX()
+            self.param_y = self.settings.getY()
+
+        self.create_tooltip_frame(destroy=False)
+
         self.was_normalized_before=False
 
         self.create_plot()
 
         self.select_rect=None
-        #MAYBE: retain plot view when switching regression on/off
-        #self.plotbox=(None,None,None,None)
-
-        if self.ds is None:
-            self.settings=Label(self,text="No data, please open a file via File -> Open")
-            #self.settings.grid(column=1, row=0, sticky=(S,W,N,E))
-            return
-
-        self.settings=SSControls(self.sidebar, self,self.ds.base().get_attr_names())
-        self.sidebar.add(self.settings, text="Settings")
-        #self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
-        self.param_x=self.settings.getX()
-        self.param_y = self.settings.getY()
-
 
 
 
@@ -182,7 +176,7 @@ class SimpleScatter(Frame):
                                                         .format(xmin,ymin,xmax,ymax)
                         self.draw_tooltip(mouseevent, ind, True)
                         self.window.history.add(text)
-                        #TODO
+                        # MAYBE
                         #self.trigger_update(level=self.TIMELINE_SELECTION)
                     else:
                         self.clean_tooltip(True)
@@ -359,6 +353,8 @@ class SimpleScatter(Frame):
             newcols = self.window.calc.get_all_columns(with_time=True)
             self.settings = SSControls(self.sidebar, self, newcols)
             self.sidebar.add(self.settings, text="Settings")
+
+            self.create_tooltip_frame(destroy=True)
             #self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
 
@@ -404,7 +400,7 @@ class SimpleScatter(Frame):
             for i in range(len(c)):
                 if self.settings.clusel.draw_cluster(i):
                     d=self.ds.df("ss_show")
-                    d2=d.loc[d["_label"] == i]
+                    d2=d.loc[d["_cluster"] == i]
                     if self.param_x == self.ds.get_time_colname():
                         x = d2.index.values
                     else:
@@ -424,8 +420,9 @@ class SimpleScatter(Frame):
                                   picker=self.handle_pick)
 
         if self.should_connect:
-            print("HAI")
-            print(self.ax.plot(x=x_all,y=y_all, color=self.fgcol, linewidth=5, ls="solid"))
+            print("HAI", type(x_all), type(y_all))
+
+            self.ax.plot(x=list(x_all),y=list(y_all), alpha=1, linewidth=5)#, color=self.fgcol, linewidth=5, ls="solid")
 
         util.set_backgroundcolor(self.ax,self.bgcol)
         self.ax.grid(color=self.fgcol)
@@ -468,6 +465,22 @@ class SimpleScatter(Frame):
     def has_selection(self)->bool:
         return self.select_rect is not None
 
+    def create_tooltip_frame(self, destroy):
+        if destroy:
+            self.tframe.destroy()
+
+        self.tframe = Frame(self.sidebar)
+        self.sidebar.add(self.tframe, text="Tooltip")
+        #self.tframe.grid(column=0, row=0, sticky=(S,W,N,E))
+        self.tframe.rowconfigure(0,weight=1)
+        self.tframe.columnconfigure(0,weight=1)
+        self.tooltip = StringVar(self.tframe)
+        self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
+        font = Font(font=self.tlabel['font'])
+        font["size"] = 7
+        self.tlabel["font"]=font
+        self.tlabel.grid(column=0, row=0, sticky=(W, N))
+
 
 
 class SSControls(Frame):
@@ -478,6 +491,9 @@ class SSControls(Frame):
         self.k=k
         self.clusel=Label(self)
 
+        if params is None:
+            Label(self,text="No data, please open a file via File -> Open").grid(row=0, column=0)
+            return
 
         apply_changes=self.plot.apply_settings
 
@@ -513,7 +529,7 @@ class SSControls(Frame):
         self.whibla.grid(column=0, row=4, sticky=(W, N), columnspan=2)
 
         #connect by line
-        self.connvar = StringVar(value="0")
+        self.connvar = StringVar(value="1")
         self.conncb = Checkbutton(self, text='Connect following points', command=apply_changes,
                                          variable=self.connvar)
         #self.conncb.grid(column=0, row=5, sticky=(W, N), columnspan=2)
@@ -541,8 +557,14 @@ class SSControls(Frame):
 
     def set_new_cols(self, newcols):
         self.params=newcols
+        x= self.param1var.get()
+        y= self.param2var.get()
         self.param1box['values'] = newcols
         self.param2box['values'] = newcols
+        if not x in newcols:
+            self.param2var.set(newcols[0])
+        if not y in newcols:
+            self.param2var.set(newcols[1])
 
     def set_new_cluster(self, k):
         if self.k == k or (self.k<=1 and k<=1):

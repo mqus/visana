@@ -264,6 +264,8 @@ class DataSource:
                     tmp_df = tmp_df.loc[tmp_df[param] >= val]
                 elif equation["comp"] == ">":
                     tmp_df = tmp_df.loc[tmp_df[param] > val]
+                elif equation["comp"] == "!=":
+                    tmp_df = tmp_df.loc[tmp_df[param] != val]
             if once:
                 once=False
                 out_df=tmp_df
@@ -290,6 +292,9 @@ class DataSource:
         #normalize all other columns
         df = df[params]
         df = df.div(df.sum(axis=1), axis=0)
+
+        #delete all inf
+        df = df.replace([np.inf, -np.inf], np.nan)
 
         #put them back together
         out_df = out_df.join(df)
@@ -322,8 +327,10 @@ class DataSource:
         ##TMP
         #check for null values and remove them
         #(retain only not-null-values for relevant params)
+
         for p in params:
             df = df.loc[df[p].notnull()]
+
 
         kmeans = cluster.KMeans(n_clusters=k)
         kmeans.fit(df[params])
@@ -370,7 +377,7 @@ class DataSource:
         newlabels = []
         for label in labels:
             newlabels.append(cent_map[label])
-        df["_label"] = newlabels
+        df["_cluster"] = newlabels
         #print("lb  end")
 
         #df["_color"] =df.apply(lambda row:COLORS[row["_label"]], axis=1)

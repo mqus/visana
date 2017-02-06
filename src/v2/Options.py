@@ -19,11 +19,8 @@ class Options(tk.Frame):
         self.clause = None
 
 
-        self.select= Selector(self, self.ds, self.apply_select)
-        self.select.grid(column=0, row=0, sticky=(E, W,N), columnspan=2)
-
         # draw aggregation setter
-        nlbl=tk.Label(self,text="2: aggregated Minutes, n=")
+        nlbl=tk.Label(self,text="1: aggregated Minutes, n=")
         nlbl.grid(column=0, row=1, sticky=(E, N))
 
         self.n = tk.StringVar(self)
@@ -32,14 +29,15 @@ class Options(tk.Frame):
         self.n_spin.grid(column=1, row=1, sticky=(W, N))
 
         #Normalize?
-        nolbl=tk.Label(self, text='3: Normalize grain sizes/\ncalculate with histograms:')
+        #nolbl=tk.Label(self, text='3: Normalize grain sizes/\ncalculate with histograms:')
+        nolbl=tk.Label(self, text='2: Take relative count per Grainsize-Class:')
         nolbl.grid(column=0, row=2, sticky=(E, N))
         self.novar = tk.StringVar(value="0")
         nocb = ttk.Checkbutton(self, text="", variable=self.novar)
         nocb.grid(column=1, row=2, sticky=(W, N))
 
         # draw #cluster setter
-        klbl=tk.Label(self,text="4: # of Clusters, k=")
+        klbl=tk.Label(self,text="3: # of Clusters, k=")
         klbl.grid(column=0, row=3, sticky=(E,N))
 
         self.k = tk.StringVar(self)
@@ -48,7 +46,7 @@ class Options(tk.Frame):
         self.k_spin.grid(column=1, row=3, sticky=(W, N))
 
         #TODO: Clusterparams
-        frm = tk.LabelFrame(self, text="Features to cluster with")
+        frm = tk.LabelFrame(self, text="4. Select features to cluster with")
         frm.grid(column=0, row=4, sticky=(W, N,E), columnspan=2)
         frm.columnconfigure(0, weight=1)
         frm.rowconfigure(0,weight=1)
@@ -66,7 +64,7 @@ class Options(tk.Frame):
 
 
         self.refrbutton = tk.Button(self)
-        self.refrbutton["text"] = "recalculate clusters"
+        self.refrbutton["text"] = "recalculate clusters (up to 20sec)"
         self.refrbutton["command"] = self.handle_refresh_btn
         self.refrbutton.grid(column=0, row=5, sticky=(W, N,E), columnspan=2)
 
@@ -79,17 +77,6 @@ class Options(tk.Frame):
     def handle_refresh_btn(self):
         self.window.calc.recalc(AGGREGATOR)
         return
-
-    def apply_select(self, clause):
-        self.clause = clause
-        self.window.calc.recalc(SELECTOR)
-
-    def ds_changed(self):
-        self.ds=self.window.ds
-        self.select.destroy()
-        self.select= Selector(self, self.ds, self.apply_select)
-        self.select.grid(column=0, row=0, sticky=(E, W,N), columnspan=2)
-        self.classes_changed()
 
     def get_n(self):
         return int(self.n.get())
@@ -104,6 +91,9 @@ class Options(tk.Frame):
             return None
         return [self.clusterparams.get(i) for i in selected]
 
+    def ds_changed(self):
+        self.ds = self.window.ds
+        self.classes_changed()
 
 
 
