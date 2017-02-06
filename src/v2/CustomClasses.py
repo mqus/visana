@@ -33,12 +33,12 @@ class CustomClasses(Frame):
         self.grainListBox.grid(row=1, column=0, rowspan=10)
 
         ## button to add selected sizes to new class
-        self.b_add = Button(self, text='Add to Class', width=17)
+        self.b_add = Button(self, text='Add to new Class', width=19)
         self.b_add['command'] = self.add_class
         self.b_add.grid(row=11, column=0)
 
         ## button to add all remaining entries to a new class
-        self.b_remaining = Button(self, text='Add remaining to Class', width=17)
+        self.b_remaining = Button(self, text='Add remaining to Class', width=19)
         self.b_remaining['command'] = self.add_remaining
         self.b_remaining.grid(row=12, column=0)
 
@@ -47,9 +47,9 @@ class CustomClasses(Frame):
         self.b_reset['command'] = self.reset
         self.b_reset.grid(row=13, column=0)
 
-        self.b_accept = Button(self, text='Save')
-        self.b_accept['command'] = self.accept
-        self.b_accept.grid(row=14, column=0)
+        # self.b_accept = Button(self, text='Save')
+        # self.b_accept['command'] = self.accept
+        # self.b_accept.grid(row=14, column=0)
 
         # ## button to cancel selection process and return to main window
         # self.b_cancel = Button(self, text='Cancel', width=17)
@@ -77,6 +77,7 @@ class CustomClasses(Frame):
         ## ... and paint them all new!
         self.print_classes()
 
+
     ## add selected grain sizes to new class
     def add_class(self):
         selected = self.grainListBox.curselection()
@@ -101,6 +102,7 @@ class CustomClasses(Frame):
             self.classLabel += 1
 
             self.print_classes()
+            self.window.calc.cclasses_changed(self.classesDict)
 
     def add_remaining(self):
         newlabel = "Class{}".format(self.classLabel)
@@ -112,7 +114,12 @@ class CustomClasses(Frame):
 
         self.print_classes()
 
+        self.window.calc.cclasses_changed(self.classesDict)
+
     def print_classes(self):
+        frm=Frame(self)
+        frm.grid(column=1, row=1,rowspan=20)
+
         rowOffset = 0
         label = Label(self, text="Grain Classes:")
         label.grid(row=rowOffset, column=1)
@@ -121,11 +128,12 @@ class CustomClasses(Frame):
             classDescr = "" + k + ":"
             for grain in self.classesDict[k]:
                 classDescr = classDescr + "\n" + grain
-            classMsg = Message(self, text=classDescr, width=100)
+            classMsg = Message(frm, text=classDescr)#, width=100)
             classMsg.grid(column=1, row=rowOffset)
 
         #print("GRAIN_COLS:")
         #print(GRAIN_COLS)
+        self.window.calc.cclasses_changed(self.classesDict)
 
 
         if len(self.remaining_grains) == 0:
@@ -143,9 +151,9 @@ class CustomClasses(Frame):
             self.b_reset.config(state = NORMAL)
 
 
-    def accept(self):
-        self.success = True
-        #TODO write to calc
-        self.window.history.add("Set Custom Classes to "+str(self.classesDict))
-        self.window.calc.cclasses_changed(self.classesDict)
+    # def accept(self):
+    #     self.success = True
+    #     #TODO write to calc
+    #     self.window.history.add("Set Custom Classes to "+str(self.classesDict))
+    #     self.window.calc.cclasses_changed(self.classesDict)
 

@@ -1,5 +1,5 @@
 from tkinter import Frame, Label, StringVar, N, E, W, S, Spinbox
-from tkinter.ttk import Combobox, LabelFrame, Checkbutton, Button, Notebook
+from tkinter.ttk import Combobox, LabelFrame, Checkbutton, Button
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -15,9 +15,9 @@ from datasource import DataSource, COLORS
 
 
 
-class SimpleScatter(Frame):
+class Histogram(Frame):
     def __init__(self,parent,master):
-        super(SimpleScatter,self).__init__(parent)
+        super(Histogram,self).__init__(parent)
         self.window=master #type:VisAnaWindow
         self.parent=parent
 
@@ -26,22 +26,17 @@ class SimpleScatter(Frame):
         self.ds=self.window.ds #type:DataSource
 
         self.columnconfigure(1,weight=1)
-        self.rowconfigure(0,weight=1)
+        self.rowconfigure(1,weight=1)
 
-        self.sidebar=Notebook(self)
-        self.sidebar.grid(column=0, row=0, sticky=(S,W,N,E))
-
-
-        self.tframe = Frame(self.sidebar)
-        self.sidebar.add(self.tframe, text="Tooltip")
-        #self.tframe.grid(column=0, row=0, sticky=(S,W,N,E))
+        self.tframe = LabelFrame(self, text="Tooltip")
+        #self.tframe.grid(column=0, row=1, sticky=(S,W,N,E))
         self.tframe.rowconfigure(0,weight=1)
         self.tframe.columnconfigure(0,weight=1)
         self.tooltip = StringVar(self.tframe)
         self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
         self.tlabel.grid(column=0, row=0, sticky=(W, N))
 
-        self.create_plot()
+        #self.create_plot()
 
         self.select_rect=None
         #MAYBE: retain plot view when switching regression on/off
@@ -49,41 +44,39 @@ class SimpleScatter(Frame):
 
         if self.ds is None:
             self.settings=Label(self,text="No data, please open a file via File -> Open")
-            #self.settings.grid(column=1, row=0, sticky=(S,W,N,E))
+            self.settings.grid(column=1, row=1, sticky=(S,W,N,E))
             return
 
-        self.settings=SSControls(self.sidebar, self,self.ds.base().get_attr_names())
-        self.sidebar.add(self.settings, text="Settings")
-        #self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
-        self.param_x=self.settings.getX()
-        self.param_y = self.settings.getY()
+        self.settings=HControls(self,self.ds.base().get_attr_names())
+        self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
+        self.apply_settings()
 
 
 
 
-    def create_plot(self):
-        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
-        self.ax = self.fig.add_subplot(111) #type:Axes
-        #self.ax2 = self.fig.add_subplot(212)
-        self.ax.grid(True)
-        self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
-
-        self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
-        self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
-        self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
-        #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
-
-        self.canvas.get_tk_widget().grid(column=1, row=0, sticky=(N, E, W, S), rowspan=2)
-
-        # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
-        #self.ctbwidget=tk.Frame(self)
-        #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
-        #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
-
-        #self.ax.callbacks.connect('xlim_changed', self.handle_changed_axes)
-        #self.ax.callbacks.connect('ylim_changed', self.handle_changed_axes)
-
-        util.zoom_factory(self.ax)
+    # def create_plot(self):
+    #     self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+    #     self.ax = self.fig.add_subplot(111) #type:Axes
+    #     #self.ax2 = self.fig.add_subplot(212)
+    #
+    #     self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
+    #
+    #     #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
+    #     # self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
+    #     # self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
+    #     # #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
+    #
+    #     self.canvas.get_tk_widget().grid(column=1, row=0, sticky=(N, E, W, S), rowspan=2)
+    #
+    #     # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
+    #     #self.ctbwidget=tk.Frame(self)
+    #     #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
+    #     #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
+    #
+    #     #self.ax.callbacks.connect('xlim_changed', self.handle_changed_axes)
+    #     #self.ax.callbacks.connect('ylim_changed', self.handle_changed_axes)
+    #
+    #     #util.zoom_factory(self.ax)
 
 
     #### Handle Graph signals
@@ -105,7 +98,6 @@ class SimpleScatter(Frame):
 
     ## is called by the plot to confirm if the mouseevent was inside/on a plotted line or a marker
     def handle_pick(self, line, mouseevent):
-
         if mouseevent.button == 1:
             return self.handle_mouse_event(mouseevent)
         else:
@@ -308,34 +300,8 @@ class SimpleScatter(Frame):
 
     #### Handle Signals from Outside
 
-    #the selection changed, called by SSControls
-    def params_changed(self,event=None):
-        self.param_x=self.settings.getX()
-        self.param_y = self.settings.getY()
-
-        # Set Bounding Box for the plot
-        #widen plot box by 2% on each side
-        padding=0.02# 2%
-        x_all = self.ds.get_data("ss_show").get_column(self.param_x)
-        y_all = self.ds.get_data("ss_show").get_column(self.param_y)
-
-        self.xmin = x_all.min() - padding*(x_all.max()-x_all.min())
-        self.xmax = x_all.max() + padding*(x_all.max()-x_all.min())
-        self.ymin = y_all.min() - padding*(y_all.max()-y_all.min())
-        self.ymax = y_all.max() + padding*(y_all.max()-y_all.min())
-
-        self.apply_settings()
-
     def apply_settings(self, ev=None):
-        if self.settings.do_white_on_black():
-            self.bgcol="black"
-            self.fgcol="white"
-        else:
-            self.fgcol="black"
-            self.bgcol="white"
-
-        self.alpha=self.settings.get_alpha()
-        self.s=self.settings.get_s()
+        self.lgvar = self.settings.doLog()
 
         self.redraw_plot()
 
@@ -354,9 +320,8 @@ class SimpleScatter(Frame):
         if olds is None:
             self.settings.destroy()
             newcols = self.window.calc.get_all_columns(with_time=True)
-            self.settings = SSControls(self.sidebar, self, newcols)
-            self.sidebar.add(self.settings, text="Settings")
-            #self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
+            self.settings = HControls(self, newcols)
+            self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
 
             #self.cluster_changed("base")
@@ -365,28 +330,80 @@ class SimpleScatter(Frame):
         #TODO what to do when graph not seen?
         #TODO multiple Graphs
         newcols=self.window.calc.get_all_columns(with_time=True)
+        #self.settings.set_new_cols(newcols)
+
         self.ds.link("ss_show", in_table)
 
-        self.settings.set_new_cols(newcols)
-        #number of clusters
-        if self.ds.get_data("ss_show").centroids is not None:
-            k=len(self.ds.get_data("ss_show").centroids)
-            self.settings.set_new_cluster(k)
-
-        if self.param_x is None or self.param_x not in newcols or self.param_y not in newcols:
-            self.params_changed()
-        else:
-            self.redraw_plot()
+        self.apply_settings()
 
         #sync settings and redraw plot
         #self.create_plot()
 
-    ## update view with specified data
+
+
     def draw_plot(self):
+        self.clean_tooltip(True)
+
+        self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
+        self.ax = self.fig.add_subplot(111) #type:Axes
+
+        self.ax.clear()
+        self.ax.grid(True)
+        tabl = self.ds.get_data("cluster")
+        d = tabl.df()
+        if tabl.centroids is None:
+            return
+        k=len(tabl.centroids)
+        cluster_params=self.window.calc.cluster_params
+        print("hist ", cluster_params)
+
+        # subplot_num = 0
+        # print(self.centroids)
+        y_pos = pd.np.arange(len(cluster_params))
+        # print(y_pos)
+        width = 0.95 / k
+        # colors = ["#d62728", "blue", "green", "brown"]
+        for c in range(0, k):
+            # subplot_num += 1
+            ystdev = []
+            one_value_cluster = d.loc[d['_label'] == c]
+
+            # for i in range(0, len(datasource.GRAIN_COLS)):
+            for i in range(0, len(cluster_params)):
+                col = one_value_cluster[cluster_params[i]]
+                stdev = pd.np.std(col)
+                ystdev.append(stdev)
+
+            cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
+            ## cluster label for legend
+            c_label = "Cluster " + str(c)
+            self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,#alpha=0.75,
+                        color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+        self.ax.grid(True)
+        # self.ax.set_xticklabels
+        # self.ax.set_ylim(0, 1, emit=False)
+        max_y_val = max(map(max, tabl.centroids))
+        self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+
+        self.ax.set_xticks(y_pos + width / 4)
+        self.ax.set_xticklabels(cluster_params)
+
+#        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+#        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
+
+        ## add legend
+        self.ax.legend(loc="upper right", shadow=True)
+
+        self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
+
+        self.canvas.get_tk_widget().grid(column=1, row=0, sticky=(N, E, W, S), rowspan=2)
+
+    ## update view with specified data
+    def draw_plot2(self):
         #ax.plot(self.df[self.param_x], self.df[self.param_y], marker="o", linewidth=0, picker=self.line_picker)
         self.clean_tooltip(True)
         self.ax.clear()
-        self.ax.grid(True)
+        #self.ax.grid(True)
         #if self.param_x == self.ds.get_time_colname() or self.param_y == self.ds.get_time_colname():
         #    #self.plot=self.ax.plot(x, y,picker=self.handle_pick)#, marker="o", linewidths=0,picker=self.handle_pick)
         #    self.plot = self.ax.scatter(x=x, y=y, picker=self.handle_pick)
@@ -399,19 +416,12 @@ class SimpleScatter(Frame):
 
         if c is not None:
             for i in range(len(c)):
-                if self.settings.clusel.draw_cluster(i):
-                    d=self.ds.df("ss_show")
-                    d2=d.loc[d["_label"] == i]
-                    if self.param_x == self.ds.get_time_colname():
-                        x = d2.index.values
-                    else:
-                        x = d2[self.param_x]
-                    if self.param_y == self.ds.get_time_colname():
-                        y = d2.index.values
-                    else:
-                        y = d2[self.param_y]
-                    self.ax.scatter(x=x, y=y, marker="o",color=COLORS[i], s=self.s,
-                                    alpha=self.alpha, linewidths=0, picker=self.handle_pick)
+                d=self.ds.df("ss_show")
+                d2=d.loc[d["_label"] == i]
+                x = d2[self.param_x]
+                y = d2[self.param_y]
+                self.ax.scatter(x=x, y=y, marker="o",color=COLORS[i], s=self.s,
+                                alpha=self.alpha, linewidths=0, picker=self.handle_pick)
             #TOO SLOW
             # colors = self.ds.get_data("ss_show").get_column("_color")
             # self.ax.scatter(x=x_all, y=y_all, marker="o",color=colors, s=1,
@@ -463,121 +473,24 @@ class SimpleScatter(Frame):
 
 
 
-class SSControls(Frame):
-    def __init__(self, parent,plot, params, k=1):
-        super(SSControls, self).__init__(parent)#,text="Scatterplot-Options")
+class HControls(LabelFrame):
+    def __init__(self, parent, params):
+        super(HControls, self).__init__(parent,text="Histogram-Options")
         self.params=params
-        self.plot=plot #type:SimpleScatter
-        self.k=k
-        self.clusel=Label(self)
-
-
-        apply_changes=self.plot.apply_settings
-
-        param1lbl = Label(self, text="X-Axis:")
-        param1lbl.grid(column=0, row=1, sticky=(N, E, W))
-        self.param1var = StringVar()
-        self.param1var.set(params[1])
-        self.param1box=Combobox(self, textvariable=self.param1var, state="readonly")
-        self.param1box['values'] = self.params
-        self.param1box.bind('<<ComboboxSelected>>', self.plot.params_changed)
-        self.param1box.grid(column=1, row=1, sticky=(N, E, W))
-
-
-        param2lbl = Label(self, text="Y-Axis:")
-        param2lbl.grid(column=0, row=2, sticky=(N, E, W))
-        self.param2var = StringVar()
-        self.param2var.set(params[2])
-        self.param2box = Combobox(self, textvariable=self.param2var, state="readonly")
-        self.param2box['values'] = self.params
-        self.param2box.bind('<<ComboboxSelected>>', self.plot.params_changed)
-        self.param2box.grid(column=1, row=2, sticky=(N, E, W))
-
-        #Regression
-        self.rgvar = StringVar(value="0")
-        self.regression = Checkbutton(self, text='Draw Regression', command=apply_changes,
-                                         variable=self.rgvar)
-        self.regression.grid(column=0, row=3, sticky=(W, N), columnspan=2)
-
-        #background
-        self.wbvar = StringVar(value="0")
-        self.whibla = Checkbutton(self, text='Black Background', command=apply_changes,
-                                         variable=self.wbvar)
-        self.whibla.grid(column=0, row=4, sticky=(W, N), columnspan=2)
-
-        #Dot settings
-        frm = Frame(self)
-        frm.grid(column=0, row=5, sticky=(W, N, E), columnspan=2)
-        frm.columnconfigure(2,weight=1)
-        Label(frm,text="alpha:").grid(column=0, row=0, sticky=(N, E))
-        Label(frm,text="dotsize:").grid(column=3, row=0, sticky=(N, E))
-
-        self.alpha=StringVar(self,value="0.2")
-        self.s=StringVar(self,value="4")
-
-        Spinbox(frm,from_=0.05, to=1, increment=0.05, command=apply_changes, textvariable=self.alpha,width=4)\
-            .grid(column=1, row=0, sticky=(W, E))
-        Spinbox(frm,from_=0.5, to=20, increment=0.5 , command=apply_changes, textvariable=self.s,width=4)\
-            .grid(column=4, row=0, sticky=(W, E))
+        self.parent=parent #type:SimpleScatter
 
 
 
+        apply_changes=self.parent.apply_settings
 
-        Button(frm,text="Apply", command=self.plot.params_changed)\
-            .grid(column=0, row=1, sticky=(N, E,W), columnspan=5)
-
-    def set_new_cols(self, newcols):
-        self.params=newcols
-        self.param1box['values'] = newcols
-        self.param2box['values'] = newcols
-
-    def set_new_cluster(self, k):
-        if self.k == k or (self.k<=1 and k<=1):
-            return
-        self.clusel.destroy()
-        self.clusel=ClusterSelect(self,self.plot,k)
-        self.clusel.grid(column=0, row=6, sticky=(N, E,W), columnspan=2)
-
-    def getX(self):
-        return self.param1var.get()
-
-    def getY(self):
-        return self.param2var.get()
-
-    def doRegr(self):
-        return self.rgvar.get() is not "0"
-
-    def do_white_on_black(self):
-        return self.wbvar.get() is not "0"
-
-    def get_alpha(self):
-        return float(self.alpha.get())
-
-    def get_s(self):
-        return float(self.s.get())
+        #logarithmic scale
+        self.lgvar = StringVar(value="0")
+        self.log_cb = Checkbutton(self, text='logarithmic scale', command=apply_changes,
+                                         variable=self.lgvar)
+        self.log_cb.grid(column=0, row=1, sticky=(W, N), columnspan=2)
 
 
-class ClusterSelect(LabelFrame):
-    def __init__(self, parent, plot, k):
-        super(ClusterSelect, self).__init__(parent)#,text="Scatterplot-Options")
-        self.plot=plot #type:SimpleScatter
-        self.ds=plot.ds
-        apply = plot.apply_settings
-
-        self.cvars=[]
-
-        for i in range(k):
-            cv = StringVar(self,value="1")
-            cb = Checkbutton(self,text="Cluster "+str(i), variable=cv, command=apply)
-            cb.grid(column=0, row=i, sticky=(N, E,W), columnspan=1)
-            self.cvars.append(cv)
-
-
-
-
-
-
-    def draw_cluster(self,i):
-        return self.cvars[i].get() == "1"
+    def doLog(self):
+        return self.lgvar.get() is not "0"
 
 

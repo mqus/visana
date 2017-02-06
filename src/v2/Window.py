@@ -7,6 +7,7 @@ import  tkinter.ttk as ttk
 
 from CustomClasses import CustomClasses
 from DataTasks import ALL, Calculator
+from Histogram import Histogram
 from History import HistoryView
 from Options import Options
 from SimpleScatter import SimpleScatter
@@ -30,7 +31,7 @@ class VisAnaWindow(tk.Frame):
         self.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
         self.columnconfigure(0, weight=1)
         self.rowconfigure(1,weight=1)
-        #self.rowconfigure(2,minsize=20)
+        #self.rowconfigure(0,maxsize=100)
         self.createMenu()
 
         #self.createTimeline()
@@ -71,6 +72,7 @@ class VisAnaWindow(tk.Frame):
         #draw history/clusteroptions multiview
         self.sidepane_r=ttk.Notebook(self)
         self.sidepane_r.grid(column=1, row=1, sticky=(tk.N,tk.E,tk.S))
+        self.sidepane_r.bind("<Configure>", print)
 
         #add clustering options
         self.options = Options(self.sidepane_r, self)
@@ -81,16 +83,20 @@ class VisAnaWindow(tk.Frame):
         self.sidepane_r.add(self.history,text="History")
 
         #add custom classes
-
         self.customclasses= CustomClasses(self.sidepane_r, self)
         self.sidepane_r.add(self.customclasses, text="Custom Grain Classes")
 
+        #simple Scatterplot
         self.scatter = SimpleScatter(self.graphs, self)
         self.graphs.add(self.scatter, text="ScatterPlot")
 
+        #add Histogram
+        self.hist = Histogram(self.graphs, self)
+        self.graphs.add(self.hist, text="Histogram")
+
         self.status=StringVar(self)
-        slbl=ttk.Label(self,textvariable=self.status, justify="left")
-        slbl.grid(column=0, row=2, columnspan=2, sticky=(tk.E,tk.W,tk.S))
+        ttk.Label(self,textvariable=self.status, justify="left")\
+            .grid(column=0, row=2, columnspan=2, sticky=(tk.E,tk.W,tk.S))
 
 
     # def redraw_parts(self):
@@ -114,16 +120,20 @@ class VisAnaWindow(tk.Frame):
 
         self.options.ds_changed()
         self.scatter.ds_changed()
+        self.hist.ds_changed()
 
         self.customclasses.destroy()
         self.customclasses= CustomClasses(self.sidepane_r, self)
         self.sidepane_r.add(self.customclasses, text="Custom Grain Classes")
+        self.calc.cclasses_changed(dict())
 
         self.calc.recalc(ALL)
 
     def redo_plots(self):
         #TODO
+        self.timeline.create_timeline()
         self.scatter.cluster_changed("cluster")
+        self.hist.cluster_changed("cluster")
 
 
 

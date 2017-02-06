@@ -34,7 +34,7 @@ class DataTable:
 
 	def get_column(self,colname):
 		if colname == self.indexName:
-				return self.table.index
+				return self.table.index.values
 		return self.table[colname]
 
 	def is_clustered(self):

@@ -32,7 +32,7 @@ class Options(tk.Frame):
         self.n_spin.grid(column=1, row=1, sticky=(W, N))
 
         #Normalize?
-        nolbl=tk.Label(self, text='3: Normalize grain sizes:')
+        nolbl=tk.Label(self, text='3: Normalize grain sizes/\ncalculate with histograms:')
         nolbl.grid(column=0, row=2, sticky=(E, N))
         self.novar = tk.StringVar(value="0")
         nocb = ttk.Checkbutton(self, text="", variable=self.novar)

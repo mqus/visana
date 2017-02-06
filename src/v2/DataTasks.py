@@ -35,7 +35,13 @@ class Calculator:
     def __init__(self, window):
         self.window=window #type:v2.Window.VisAnaWindow
         self.ds = self.window.ds #type:DataSource
+
+        #change after each save
         self.custom_classes=[]
+
+        #change only after recalc
+        self.cluster_params=[]
+        self.class_params=dict()
 
 
 
@@ -80,6 +86,7 @@ class Calculator:
         if level >= CLASSBUILDER:
             i+=1
             params = self.custom_classes
+            self.class_params = params
             if params is None or len(params)==0:
                 self.ds.link("newclasses","normalize")
             else:
@@ -98,11 +105,13 @@ class Calculator:
                 params=[k for k in self.custom_classes]
             #params = ["small", "large"]
             if k<=1 or params is None:
+                self.cluster_params=[]
                 self.ds.link("cluster","newclasses")
             else:
                 print("cluster",k,params)
-                self.window.status.set(
-                    "{}: Search for k={} clusters by applying k-means on {} parameters".format(i, k, len(params)))
+                self.cluster_params=params
+                self.window.status.set("{}: Search for k={} clusters by applying k-means on {} parameters"
+                                        .format(i, k, len(params)))
                 self.ds.cluster("cluster",k,params,"newclasses")
         if level >= PLOT:
             self.window.redo_plots()
