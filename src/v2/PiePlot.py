@@ -342,58 +342,57 @@ class Pie(Frame):
         self.ax.grid(True)
         tabl = self.ds.get_data("cluster")
         d = tabl.df()                       #type:DataFrame
-        if tabl.centroids is None:
-            return
-        k = len(tabl.centroids)
-        g = d.groupby(["_cluster"]).count()["Daytime"]
+        if tabl.centroids is not None:
+            k = len(tabl.centroids)
+            g = d.groupby(["_cluster"]).count()["Daytime"]
 
-        print(g)
+            print(g)
 
-#        cluster_params = self.window.calc.cluster_params
-#        print("hist ", cluster_params)
-        s= '%f' % 99.2
-        lbls = ["Cluster "+str(i) for i in range(k)]
-        self.ax.pie(g,colors=COLORS,labels=lbls,autopct="%2.2f %%",pctdistance=0.8)
-        self.ax.axis("equal")
-        self.fig.suptitle("Cluster-Occurence in Data")
+    #        cluster_params = self.window.calc.cluster_params
+    #        print("hist ", cluster_params)
+            s= '%f' % 99.2
+            lbls = ["Cluster "+str(i) for i in range(k)]
+            self.ax.pie(g,colors=COLORS,labels=lbls,autopct="%2.2f %%",pctdistance=0.8)
+            self.ax.axis("equal")
+            self.fig.suptitle("Cluster-Occurence in Data")
 
 
-        # # subplot_num = 0
-        # # print(self.centroids)
-        # y_pos = pd.np.arange(len(cluster_params))
-        # # print(y_pos)
-        # width = 0.95 / k
-        # # colors = ["#d62728", "blue", "green", "brown"]
-        # for c in range(0, k):
-        #     # subplot_num += 1
-        #     ystdev = []
-        #     one_value_cluster = d.loc[d['_label'] == c]
-        #
-        #     # for i in range(0, len(datasource.GRAIN_COLS)):
-        #     for i in range(0, len(cluster_params)):
-        #         col = one_value_cluster[cluster_params[i]]
-        #         stdev = pd.np.std(col)
-        #         ystdev.append(stdev)
-        #
-        #     cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
-        #     ## cluster label for legend
-        #     c_label = "Cluster " + str(c)
-        #     self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,  # alpha=0.75,
-        #                 color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
-        # self.ax.grid(True)
-        # self.ax.set_xticklabels
-        # self.ax.set_ylim(0, 1, emit=False)
-        # max_y_val = max(map(max, tabl.centroids))
-        # self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
-        #
-        # self.ax.set_xticks(y_pos + width / 4)
-        # self.ax.set_xticklabels(cluster_params)
+            # # subplot_num = 0
+            # # print(self.centroids)
+            # y_pos = pd.np.arange(len(cluster_params))
+            # # print(y_pos)
+            # width = 0.95 / k
+            # # colors = ["#d62728", "blue", "green", "brown"]
+            # for c in range(0, k):
+            #     # subplot_num += 1
+            #     ystdev = []
+            #     one_value_cluster = d.loc[d['_label'] == c]
+            #
+            #     # for i in range(0, len(datasource.GRAIN_COLS)):
+            #     for i in range(0, len(cluster_params)):
+            #         col = one_value_cluster[cluster_params[i]]
+            #         stdev = pd.np.std(col)
+            #         ystdev.append(stdev)
+            #
+            #     cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
+            #     ## cluster label for legend
+            #     c_label = "Cluster " + str(c)
+            #     self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,  # alpha=0.75,
+            #                 color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+            # self.ax.grid(True)
+            # self.ax.set_xticklabels
+            # self.ax.set_ylim(0, 1, emit=False)
+            # max_y_val = max(map(max, tabl.centroids))
+            # self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+            #
+            # self.ax.set_xticks(y_pos + width / 4)
+            # self.ax.set_xticklabels(cluster_params)
 
-        #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
-        #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
+            #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+            #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
 
-        ## add legend
-        #self.ax.legend(loc="upper right", shadow=True)
+            ## add legend
+            #self.ax.legend(loc="upper right", shadow=True)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self)  # type:FigureCanvasTkAgg
 

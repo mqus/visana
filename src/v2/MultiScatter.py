@@ -330,85 +330,85 @@ class MultiScatter(Frame):
 
         tabl = self.ds.get_data("cluster")
         d = tabl.df()
-        if tabl.centroids is None:
-            return
-        k=len(tabl.centroids)
-        cluster_params=self.window.calc.cluster_params
+        if tabl.centroids is not None:
+            k=len(tabl.centroids)
+            cluster_params=self.window.calc.cluster_params
 
-        param_combos = []
-        subplot_num = 0
-        paraLen = min(len(cluster_params),10)
-        axarr = [[]]
-        dummy = [[]]
-        sharey = {}
+            param_combos = []
+            subplot_num = 0
+            paraLen = min(len(cluster_params),10)
+            axarr = [[]]
+            dummy = [[]]
+            sharey = {}
 
-        for qi in range(0, paraLen):
-            q = cluster_params[qi]
-            #subplot_num = ((subplot_num%10)*10)+111
-            #print("subplot_num=",str(subplot_num))
-            for pi in range(0, paraLen):
-                #print("qi =",str(qi))
-                p = cluster_params[pi]
-                #subplot_num += 1
-                if pi < qi:#not p == q:
-                    subplot_num = (qi-1)*(paraLen-1) + (pi+1)
-                    #print(subplot_num)
-                    #print("\tsubplot_num=",str(subplot_num))
-                    param_combos.append((p,q))
-                    x = d[p]
-                    y = d[q]
-                    #print("pi=",str(pi),"qi=",str(qi))
-                    #if qi>0 & pi>0:
-                    #    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=axarr[0][pi-1], sharey=axarr[qi][0])
-                    #if qi>1:
-                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=sharex[pi])
-                    #if pi>1:
-                    #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
-                    #else:
-                    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num)
+            for qi in range(0, paraLen):
+                q = cluster_params[qi]
+                #subplot_num = ((subplot_num%10)*10)+111
+                #print("subplot_num=",str(subplot_num))
+                for pi in range(0, paraLen):
+                    #print("qi =",str(qi))
+                    p = cluster_params[pi]
+                    #subplot_num += 1
+                    if pi < qi:#not p == q:
+                        subplot_num = (qi-1)*(paraLen-1) + (pi+1)
+                        #print(subplot_num)
+                        #print("\tsubplot_num=",str(subplot_num))
+                        param_combos.append((p,q))
+                        x = d[p]
+                        y = d[q]
+                        #print("pi=",str(pi),"qi=",str(qi))
+                        #if qi>0 & pi>0:
+                        #    self.ax = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=axarr[0][pi-1], sharey=axarr[qi][0])
+                        #if qi>1:
+                        #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharex=sharex[pi])
+                        #if pi>1:
+                        #    ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num, sharey=sharey[qi])
+                        #else:
+                        ax1 = self.fig.add_subplot(paraLen-1, paraLen-1, subplot_num)
 
-                    #if pi==0:
-                    #    print("add sharey for",str(qi))
-                    #    sharey[qi] = ax1
+                        #if pi==0:
+                        #    print("add sharey for",str(qi))
+                        #    sharey[qi] = ax1
 
-                    #print(self.centroids[1,0])
-                    for i in range(k):
-                        if self.settings.clusel.draw_cluster(i):
-                            one_value_cluster = d.loc[d['_cluster'] == i]
-                            ax1.scatter(one_value_cluster[cluster_params[pi]], one_value_cluster[cluster_params[qi]],
-                                        color=COLORS[i], marker=".", alpha=self.alpha, s=self.s)
-                        #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
-                        ax1.plot(tabl.centroids[i][pi],tabl.centroids[i][qi],'kx')
+                        #print(self.centroids[1,0])
+                        for i in range(k):
+                            if self.settings.clusel.draw_cluster(i):
+                                one_value_cluster = d.loc[d['_cluster'] == i]
+                                ax1.scatter(one_value_cluster[cluster_params[pi]], one_value_cluster[cluster_params[qi]],
+                                            color=COLORS[i], marker=".", alpha=self.alpha, s=self.s)
+                            #print("i:",str(i),"pi:",str(pi),"qi:",str(qi))
+                            ax1.plot(tabl.centroids[i][pi],tabl.centroids[i][qi],'kx')
 
-                    #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
+                        #self.plot=self.ax.scatter(x=x, y=y, marker="o", linewidths=0,picker=self.handle_pick)
 
-                    if qi == paraLen-1:
-                        paraLabel = p
-                        if "GRAIN_CLASS" in p: #custom class
-                            paraLabel = "CLASS"+p[-1]
-                        ax1.set_xlabel(paraLabel)
-                    else:
-                        ax1.set_xticklabels([])
+                        if qi == paraLen-1:
+                            paraLabel = p
+                            if "GRAIN_CLASS" in p: #custom class
+                                paraLabel = "CLASS"+p[-1]
+                            ax1.set_xlabel(paraLabel)
+                        else:
+                            ax1.set_xticklabels([])
 
-                    if pi == 0:
-                        paraLabel = q
-                        if "GRAIN_CLASS" in q: #custom class
-                            paraLabel = "CLASS"+q[-1]
-                        ax1.set_ylabel(paraLabel)
-                    else:
-                        ax1.set_yticklabels([])
-                    util.set_backgroundcolor(ax1, self.bgcol)
-                    ax1.grid(True, color=self.fgcol)
-                    ax1.set_xlim(x.min(), x.max(), emit=False)
-                    ax1.set_ylim(y.min(), y.max(), emit=False)
-                    #ax1.callbacks.connect('xlim_changed', self.handle_view_change)
-                    #ax1.callbacks.connect('ylim_changed', self.handle_view_change)
-                    #axarr[-1].append(ax1)
-                    #dummy[-1].append(0)
-                    #if pi == paraLen-1:
-                    #    axarr.append([])
-                    #    dummy.append([])
-                    #print(axarr)
+                        if pi == 0:
+                            paraLabel = q
+                            if "GRAIN_CLASS" in q: #custom class
+                                paraLabel = "CLASS"+q[-1]
+                            ax1.set_ylabel(paraLabel)
+                        else:
+                            ax1.set_yticklabels([])
+                        util.set_backgroundcolor(ax1, self.bgcol)
+                        ax1.grid(True, color=self.fgcol)
+                        ax1.set_xlim(x.min(), x.max(), emit=False)
+                        ax1.set_ylim(y.min(), y.max(), emit=False)
+                        #ax1.callbacks.connect('xlim_changed', self.handle_view_change)
+                        #ax1.callbacks.connect('ylim_changed', self.handle_view_change)
+                        #axarr[-1].append(ax1)
+                        #dummy[-1].append(0)
+                        #if pi == paraLen-1:
+                        #    axarr.append([])
+                        #    dummy.append([])
+                        #print(axarr)
+
 
 
         self.canvas = FigureCanvasTkAgg(self.fig, self) ##type:FigureCanvasTkAgg
@@ -424,10 +424,10 @@ class MultiScatter(Frame):
         #self.ctbwidget=tk.Frame(self)
         #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
         #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
-
+        if tabl.centroids is not None:
+            self.fig.tight_layout(pad=0)
         # util.zoom_factory(self.ax)
 
-        self.fig.tight_layout(pad=0)
         self.canvas.draw()
 
 

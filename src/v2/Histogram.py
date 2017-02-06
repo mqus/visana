@@ -351,22 +351,62 @@ class Histogram(Frame):
         self.ax.grid(True)
         tabl = self.ds.get_data("cluster")
         d = tabl.df()
-        if tabl.centroids is None:
-            return
-        k=len(tabl.centroids)
-        cluster_params=self.window.calc.cluster_params
-        print("hist ", cluster_params)
+        if tabl.centroids is not None:
 
-        # subplot_num = 0
-        # print(self.centroids)
-        y_pos = pd.np.arange(len(cluster_params))
-        # print(y_pos)
-        width = 0.95 / k
-        # colors = ["#d62728", "blue", "green", "brown"]
-        for c in range(0, k):
+            k=len(tabl.centroids)
+            cluster_params=self.window.calc.cluster_params
+            print("hist ", cluster_params)
+
+            # subplot_num = 0
+            # print(self.centroids)
+            y_pos = pd.np.arange(len(cluster_params))
+            # print(y_pos)
+            width = 0.95 / k
+            # colors = ["#d62728", "blue", "green", "brown"]
+            for c in range(0, k):
+                # subplot_num += 1
+                ystdev = []
+                one_value_cluster = d.loc[d['_cluster'] == c]
+
+                # for i in range(0, len(datasource.GRAIN_COLS)):
+                for i in range(0, len(cluster_params)):
+                    col = one_value_cluster[cluster_params[i]]
+                    stdev = pd.np.std(col)
+                    ystdev.append(stdev)
+
+                cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
+                ## cluster label for legend
+                c_label = "Cluster " + str(c)
+                self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,#alpha=0.75,
+                            color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+            self.ax.grid(True)
+            # self.ax.set_xticklabels
+            # self.ax.set_ylim(0, 1, emit=False)
+            max_y_val = max(map(max, tabl.centroids))
+            self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+
+            self.ax.set_xticks(y_pos + width / 4)
+            self.ax.set_xticklabels(cluster_params)
+
+    #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+    #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
+
+            ## add legend
+            self.ax.legend(loc="upper right", shadow=True)
+        else:
+            cluster_params = [col for col in self.window.calc.get_all_columns() if col not in ["OutdoorTemp",
+                                                                                               "RelHumidity","Daytime"]]
+            print("hist ", cluster_params)
+
+            # subplot_num = 0
+            # print(self.centroids)
+            y_pos = pd.np.arange(len(cluster_params))
+            # print(y_pos)
+            width = 0.95 / 1
+            # colors = ["#d62728", "blue", "green", "brown"]
             # subplot_num += 1
             ystdev = []
-            one_value_cluster = d.loc[d['_cluster'] == c]
+            one_value_cluster = d
 
             # for i in range(0, len(datasource.GRAIN_COLS)):
             for i in range(0, len(cluster_params)):
@@ -374,25 +414,25 @@ class Histogram(Frame):
                 stdev = pd.np.std(col)
                 ystdev.append(stdev)
 
-            cen = [tabl.centroids[c][i] for i in range(0, len(cluster_params))]
+            cen = d[cluster_params].mean(axis=0)
+            print(type(cen),type(cen.max()),cen.max())
             ## cluster label for legend
-            c_label = "Cluster " + str(c)
-            self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,#alpha=0.75,
-                        color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
-        self.ax.grid(True)
-        # self.ax.set_xticklabels
-        # self.ax.set_ylim(0, 1, emit=False)
-        max_y_val = max(map(max, tabl.centroids))
-        self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+            self.ax.bar(y_pos + width * (0 - (1 / 2.3)), cen, width, align="center", log=self.lgvar,  # alpha=0.75,
+                        color="blue", ecolor="black", yerr=ystdev)
+            self.ax.grid(True)
+            # self.ax.set_xticklabels
+            # self.ax.set_ylim(0, 1, emit=False)
+            max_y_val = cen.max()
+            self.ax.set_ylim(0, max_y_val * 1.1, emit=False)
 
-        self.ax.set_xticks(y_pos + width / 4)
-        self.ax.set_xticklabels(cluster_params)
+            self.ax.set_xticks(y_pos + width / 4)
+            self.ax.set_xticklabels(cluster_params)
 
-#        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
-#        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
+            #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
+            #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
 
-        ## add legend
-        self.ax.legend(loc="upper right", shadow=True)
+            ## add legend
+#            self.ax.legend(loc="upper right", shadow=True)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
 

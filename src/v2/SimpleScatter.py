@@ -308,6 +308,8 @@ class SimpleScatter(Frame):
         self.param_x=self.settings.getX()
         self.param_y = self.settings.getY()
 
+        self.window.history.add("scatterplot: axes changed to ({},{})".format(self.param_x, self.param_y))
+
         # Set Bounding Box for the plot
         #widen plot box by 2% on each side
         padding=0.02# 2%
