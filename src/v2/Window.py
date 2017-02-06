@@ -9,6 +9,7 @@ from CustomClasses import CustomClasses
 from DataTasks import ALL, Calculator
 from Histogram import Histogram
 from History import HistoryView
+from MultiScatter import MultiScatter
 from Options import Options
 from SimpleScatter import SimpleScatter
 from Timeline import Timeline
@@ -26,7 +27,7 @@ class VisAnaWindow(tk.Frame):
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
 
-        root.title("Visual Analyser - Gui")
+        root.title("Visual Analyser - PROTOTYP")
 
         self.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
         self.columnconfigure(0, weight=1)
@@ -94,6 +95,10 @@ class VisAnaWindow(tk.Frame):
         self.hist = Histogram(self.graphs, self)
         self.graphs.add(self.hist, text="Histogram")
 
+        #add Multiscatter
+        self.mscatter = MultiScatter(self.graphs, self)
+        self.graphs.add(self.mscatter, text="Small Multiples - Scatterplot")
+
         self.status=StringVar(self)
         ttk.Label(self,textvariable=self.status, justify="left")\
             .grid(column=0, row=2, columnspan=2, sticky=(tk.E,tk.W,tk.S))
@@ -121,6 +126,7 @@ class VisAnaWindow(tk.Frame):
         self.options.ds_changed()
         self.scatter.ds_changed()
         self.hist.ds_changed()
+        self.mscatter.ds_changed()
 
         self.customclasses.destroy()
         self.customclasses= CustomClasses(self.sidepane_r, self)
@@ -134,6 +140,7 @@ class VisAnaWindow(tk.Frame):
         self.timeline.create_timeline()
         self.scatter.cluster_changed("cluster")
         self.hist.cluster_changed("cluster")
+        self.mscatter.cluster_changed("cluster")
 
 
 

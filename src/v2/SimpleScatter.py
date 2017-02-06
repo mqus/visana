@@ -40,6 +40,7 @@ class SimpleScatter(Frame):
         self.tooltip = StringVar(self.tframe)
         self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
         self.tlabel.grid(column=0, row=0, sticky=(W, N))
+        self.was_normalized_before=False
 
         self.create_plot()
 
@@ -336,6 +337,7 @@ class SimpleScatter(Frame):
 
         self.alpha=self.settings.get_alpha()
         self.s=self.settings.get_s()
+        self.should_connect = self.settings.do_connect()
 
         self.redraw_plot()
 
@@ -351,6 +353,7 @@ class SimpleScatter(Frame):
     def ds_changed(self):
         olds=self.ds
         self.ds = self.window.ds
+
         if olds is None:
             self.settings.destroy()
             newcols = self.window.calc.get_all_columns(with_time=True)
@@ -373,11 +376,12 @@ class SimpleScatter(Frame):
             k=len(self.ds.get_data("ss_show").centroids)
             self.settings.set_new_cluster(k)
 
-        if self.param_x is None or self.param_x not in newcols or self.param_y not in newcols:
+        if self.param_x is None or self.param_x not in newcols or self.param_y not in newcols \
+                or not self.window.options.shouldNormalize() == self.was_normalized_before:
             self.params_changed()
         else:
             self.redraw_plot()
-
+        self.was_normalized_before = self.window.options.shouldNormalize()
         #sync settings and redraw plot
         #self.create_plot()
 
@@ -394,7 +398,6 @@ class SimpleScatter(Frame):
         x_all = self.ds.get_data("ss_show").get_column(self.param_x)
         y_all = self.ds.get_data("ss_show").get_column(self.param_y)
         c = self.ds.get_data("ss_show").centroids
-
 
 
         if c is not None:
@@ -419,6 +422,10 @@ class SimpleScatter(Frame):
         else:
             self.ax.scatter(x=x_all, y=y_all, marker="o",color=self.fgcol, s=self.s, alpha=self.alpha,linewidths=0,
                                   picker=self.handle_pick)
+
+        if self.should_connect:
+            print("HAI")
+            print(self.ax.plot(x=x_all,y=y_all, color=self.fgcol, linewidth=5, ls="solid"))
 
         util.set_backgroundcolor(self.ax,self.bgcol)
         self.ax.grid(color=self.fgcol)
@@ -505,9 +512,15 @@ class SSControls(Frame):
                                          variable=self.wbvar)
         self.whibla.grid(column=0, row=4, sticky=(W, N), columnspan=2)
 
+        #connect by line
+        self.connvar = StringVar(value="0")
+        self.conncb = Checkbutton(self, text='Connect following points', command=apply_changes,
+                                         variable=self.connvar)
+        #self.conncb.grid(column=0, row=5, sticky=(W, N), columnspan=2)
+
         #Dot settings
         frm = Frame(self)
-        frm.grid(column=0, row=5, sticky=(W, N, E), columnspan=2)
+        frm.grid(column=0, row=6, sticky=(W, N, E), columnspan=2)
         frm.columnconfigure(2,weight=1)
         Label(frm,text="alpha:").grid(column=0, row=0, sticky=(N, E))
         Label(frm,text="dotsize:").grid(column=3, row=0, sticky=(N, E))
@@ -523,7 +536,7 @@ class SSControls(Frame):
 
 
 
-        Button(frm,text="Apply", command=self.plot.params_changed)\
+        Button(frm,text="Apply & Reset View", command=self.plot.params_changed)\
             .grid(column=0, row=1, sticky=(N, E,W), columnspan=5)
 
     def set_new_cols(self, newcols):
@@ -536,7 +549,7 @@ class SSControls(Frame):
             return
         self.clusel.destroy()
         self.clusel=ClusterSelect(self,self.plot,k)
-        self.clusel.grid(column=0, row=6, sticky=(N, E,W), columnspan=2)
+        self.clusel.grid(column=0, row=8, sticky=(N, E,W), columnspan=2)
 
     def getX(self):
         return self.param1var.get()
@@ -549,6 +562,9 @@ class SSControls(Frame):
 
     def do_white_on_black(self):
         return self.wbvar.get() is not "0"
+
+    def do_connect(self):
+        return self.connvar.get() is not "0"
 
     def get_alpha(self):
         return float(self.alpha.get())

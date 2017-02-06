@@ -7,13 +7,13 @@ class Selector(LabelFrame):
     LIMIT=1000
     COMPARATORS=("<","<=","=","=>",">")
     def __init__(self,parent,ds, apply_action):
-        super(Selector,self).__init__(parent, text="1: select data")
+        super(Selector,self).__init__(parent, text="1: restrict/tidy up data")
 
         if ds is None:
             lbl = Label(self,text="Keine Datei geöffnet!")
             lbl.grid(column=0,row=0, sticky=(N,E,W,S))
             return
-        self.plist=ds.base().get_attr_names()
+        self.plist=[col for col in ds.base().get_attr_names() if not col==ds.get_time_colname()]
 
         self.apply_action=apply_action
         self.draw_base()

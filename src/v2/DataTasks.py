@@ -99,12 +99,13 @@ class Calculator:
             k = self.window.options.get_k()
             # TODO get PARAMS #UI Issue
             # temporarily take customclasses or get_all_columns
-            if self.custom_classes is None or len(self.custom_classes)==0:
-                params=self.get_all_columns()
-            else:
-                params=[k for k in self.custom_classes]
+            # if self.custom_classes is None or len(self.custom_classes)==0:
+            #     params=self.get_all_columns()
+            # else:
+            #     params=[k for k in self.custom_classes]
             #params = ["small", "large"]
-            if k<=1 or params is None:
+            params = self.window.options.get_cluster_params()
+            if k<=1 or params is None or len(params) == 0:
                 self.cluster_params=[]
                 self.ds.link("cluster","newclasses")
             else:
@@ -127,7 +128,7 @@ class Calculator:
 
     def cclasses_changed(self, newclasses):
         self.custom_classes=newclasses
-        #self.window.options.cclassed_changed()
+        self.window.options.classes_changed()
 
 
 
