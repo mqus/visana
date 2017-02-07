@@ -472,7 +472,7 @@ class SimpleScatter(Frame):
             self.tframe.destroy()
 
         self.tframe = Frame(self.sidebar)
-        self.sidebar.add(self.tframe, text="Tooltip")
+        self.sidebar.add(self.tframe, text="Details")
         #self.tframe.grid(column=0, row=0, sticky=(S,W,N,E))
         self.tframe.rowconfigure(0,weight=1)
         self.tframe.columnconfigure(0,weight=1)

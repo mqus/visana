@@ -336,7 +336,7 @@ class MultiScatter(Frame):
 
             param_combos = []
             subplot_num = 0
-            paraLen = min(len(cluster_params),10)
+            paraLen = min(len(cluster_params),6)
             axarr = [[]]
             dummy = [[]]
             sharey = {}

@@ -1,3 +1,8 @@
-#Aufgabe 1: Bivariate Verteilung
-Neben den bereits implementierten Darstellungsmöglichkeiten der bivariaten Verteilungen, ist nun auch die Zeit als Parameter verfügbar. Dadurch lässt sich der Verlauf eines Parameters im ausgewählten Zeitfenster gut überblicken.
-Da dies durch einen normalen Plot und keinen Scatterplot dargestellt ist, werden hier keine Tooltips für einzelne Punkte bei Mausbewegungen angezeigt. Das Selektieren einer Fläche führt aber, wie gewohnt, zu einem Tooltip, der die Informationen über die gewählten Punkte zusammenfasst.
+#Aufgabe 1: Über Grainsize-Verteilung clustern
+
+Der Benutzer kann auf der rechten Seite die Anzahl der Cluster(k) sowie die features auswählen, nach denen geclustert
+ werden soll. Das Zeitfenster kann ebenfalls frei gewählt werden(n).
+Ob die Verteilung absolut oder relativ zum clustern und Anzeigen verwendet werden soll kann ebenfalls von Nutzer 
+eingestellt werden.
+
+Wir haben dies nicht in einem extra Menü, sondern direkt im Interface eingebunden.
