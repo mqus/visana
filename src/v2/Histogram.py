@@ -382,15 +382,15 @@ class Histogram(Frame):
                             color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
                 for i in range(0, len(cen)):
                     y_val = cen[i] + ystdev[i]
-                    print("y_val:",str(y_val))
+                    #print("y_val:",str(y_val))
                     if y_val > max_y_val:
                         max_y_val = y_val
-                        print("new max_y_val:",str(max_y_val))
+                        #print("new max_y_val:",str(max_y_val))
 
 
-                print("cen:",str(cen))
-                print("ysdtev:",str(ystdev))
-                print("ypos:",str(y_pos))
+                #print("cen:",str(cen))
+                #print("ysdtev:",str(ystdev))
+                #print("ypos:",str(y_pos))
 
             self.ax.grid(True)
             # self.ax.set_xticklabels
