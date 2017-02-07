@@ -64,7 +64,7 @@ class Options(tk.Frame):
 
 
         self.refrbutton = tk.Button(self)
-        self.refrbutton["text"] = "recalculate (up to 20sec)"
+        self.refrbutton["text"] = "recalculate (takes up to 20sec)"
         self.refrbutton["command"] = self.handle_refresh_btn
         self.refrbutton.grid(column=0, row=5, sticky=(W, N,E), columnspan=2)
 

@@ -330,7 +330,7 @@ class MultiScatter(Frame):
 
         tabl = self.ds.get_data("cluster")
         d = tabl.df()
-        if tabl.centroids is not None:
+        if tabl.centroids is not None and len(tabl.centroids)>1:
             k=len(tabl.centroids)
             cluster_params=self.window.calc.cluster_params
 
