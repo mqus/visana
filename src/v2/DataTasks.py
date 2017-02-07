@@ -37,12 +37,12 @@ class Calculator:
         self.window=window #type:v2.Window.VisAnaWindow
         self.ds = self.window.ds #type:DataSource
 
-        #change after each save
-        self.custom_classes=[]
+        #change after each change of clusters
+        self.custom_classes_before_calculation=dict()
 
         #change only after recalc
         self.cluster_params=[]
-        self.class_params=dict()
+        self.custom_classes_after_calculation=dict()
 
 
 
@@ -50,6 +50,9 @@ class Calculator:
 
     def ds_changed(self):
         self.ds = self.window.ds
+        self.custom_classes_after_calculation=dict()
+        self.custom_classes_before_calculation=dict()
+        self.cluster_params=[]
         #do all calculations
 
 
@@ -90,16 +93,17 @@ class Calculator:
             else:
                 self.ds.link("normalize", "aggregator")
                 self.addToHistory(i, NORMALIZE, False,)
+
         if level >= CLASSBUILDER:
             i+=1
-            params = self.custom_classes
-            self.class_params = params
+            params = self.custom_classes_before_calculation
+            self.custom_classes_after_calculation = params
             if params is None or len(params)==0:
                 self.ds.link("newclasses","normalize")
                 self.addToHistory(i,CLASSBUILDER,False)
             else:
                 print("newclass",params)
-                self.window.status.set("{}: Create merge parameters into {} new classes".format(i, len(params)))
+                self.window.status.set("{}: Merge parameters into {} new classes".format(i, len(params)))
                 self.ds.newcols("newclasses","SUM",params, "normalize")
                 self.addToHistory(i,CLASSBUILDER,True,params)
 
@@ -126,16 +130,21 @@ class Calculator:
             self.addToHistory(i,PLOT, True)
 
 
-    def get_all_columns(self, with_time=False):
+    def get_all_columns(self, with_time=False, after_calc=False, with_custom=True):
         # add all colnames of base (except time, if wanted)
         cols = [col for col in self.ds.base().get_attr_names() if with_time or not col==self.ds.get_time_colname() ]
         # add all custom names
-        if self.custom_classes is not None:
-            cols.extend([cc for cc in self.custom_classes])
+        if not with_custom:
+            return cols
+        if self.custom_classes_before_calculation is not None:
+            if after_calc:
+                cols.extend([cc for cc in self.custom_classes_after_calculation])
+            else:
+                cols.extend([cc for cc in self.custom_classes_before_calculation])
         return cols
 
     def cclasses_changed(self, newclasses):
-        self.custom_classes=newclasses
+        self.custom_classes_before_calculation=newclasses
         self.window.options.classes_changed()
 
 

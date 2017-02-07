@@ -332,7 +332,7 @@ class DataSource:
             df = df.loc[df[p].notnull()]
 
 
-        kmeans = cluster.KMeans(n_clusters=k)
+        kmeans = cluster.KMeans(n_clusters=k, n_jobs=-1)
         kmeans.fit(df[params])
         #centroids = kmeans.cluster_centers_
 

@@ -295,7 +295,7 @@ class MultiScatter(Frame):
         self.ds = self.window.ds
         if olds is None:
             self.settings.destroy()
-            newcols = self.window.calc.get_all_columns(with_time=True)
+            newcols = self.window.calc.get_all_columns(with_custom=False)
             self.settings = MSControls(self, self, newcols)
             #self.sidebar.add(self.settings, text="Settings")
             self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
@@ -306,7 +306,7 @@ class MultiScatter(Frame):
     def cluster_changed(self, in_table):
         #TODO what to do when graph not seen?
         #TODO multiple Graphs
-        newcols=self.window.calc.get_all_columns(with_time=True)
+        newcols=self.window.calc.get_all_columns(with_time=True, after_calc=True)
         self.ds.link("ss_show", in_table)
 
         self.settings.set_new_cols(newcols)

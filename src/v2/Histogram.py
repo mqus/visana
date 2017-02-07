@@ -319,17 +319,15 @@ class Histogram(Frame):
         self.ds = self.window.ds
         if olds is None:
             self.settings.destroy()
-            newcols = self.window.calc.get_all_columns(with_time=True)
+            newcols = self.window.calc.get_all_columns(with_time=True, with_custom=False)
             self.settings = HControls(self, newcols)
             self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
 
-            #self.cluster_changed("base")
-
     def cluster_changed(self, in_table):
         #TODO what to do when graph not seen?
         #TODO multiple Graphs
-        newcols=self.window.calc.get_all_columns(with_time=True)
+        newcols=self.window.calc.get_all_columns(with_time=True, after_calc=True)
         #self.settings.set_new_cols(newcols)
 
         self.ds.link("ss_show", in_table)
@@ -394,7 +392,7 @@ class Histogram(Frame):
             ## add legend
             self.ax.legend(loc="upper right", shadow=True)
         else:
-            cluster_params = [col for col in self.window.calc.get_all_columns() if col not in ["OutdoorTemp",
+            cluster_params = [col for col in self.window.calc.get_all_columns(after_calc=True) if col not in ["OutdoorTemp",
                                                                                                "RelHumidity","Daytime"]]
             print("hist ", cluster_params)
 

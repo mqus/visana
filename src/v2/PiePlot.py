@@ -312,7 +312,7 @@ class Pie(Frame):
         self.ds = self.window.ds
         if olds is None:
             self.settings.destroy()
-            newcols = self.window.calc.get_all_columns(with_time=True)
+            newcols = self.window.calc.get_all_columns(with_custom=False)
             self.settings = PControls(self, newcols)
             self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
@@ -322,7 +322,7 @@ class Pie(Frame):
     def cluster_changed(self, in_table):
         # TODO what to do when graph not seen?
         # TODO multiple Graphs
-        newcols = self.window.calc.get_all_columns(with_time=True)
+        newcols = self.window.calc.get_all_columns(with_time=True, after_calc=True)
         # self.settings.set_new_cols(newcols)
 
         self.ds.link("ss_show", in_table)

@@ -351,22 +351,23 @@ class SimpleScatter(Frame):
         olds=self.ds
         self.ds = self.window.ds
 
+
         if olds is None:
             self.settings.destroy()
-            newcols = self.window.calc.get_all_columns(with_time=True)
+            newcols = self.window.calc.get_all_columns(with_custom=False)
             self.settings = SSControls(self.sidebar, self, newcols)
             self.sidebar.add(self.settings, text="Settings")
 
             self.create_tooltip_frame(destroy=True)
             #self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
-
+        self.settings.set_new_cluster(0)
             #self.cluster_changed("base")
 
     def cluster_changed(self, in_table):
         #TODO what to do when graph not seen?
         #TODO multiple Graphs
-        newcols=self.window.calc.get_all_columns(with_time=True)
+        newcols=self.window.calc.get_all_columns(with_time=True, after_calc=True)
         self.ds.link("ss_show", in_table)
 
         self.settings.set_new_cols(newcols)
@@ -565,7 +566,7 @@ class SSControls(Frame):
         self.param1box['values'] = newcols
         self.param2box['values'] = newcols
         if not x in newcols:
-            self.param2var.set(newcols[0])
+            self.param1var.set(newcols[0])
         if not y in newcols:
             self.param2var.set(newcols[1])
 
