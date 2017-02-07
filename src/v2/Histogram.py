@@ -363,6 +363,7 @@ class Histogram(Frame):
             # print(y_pos)
             width = 0.95 / k
             # colors = ["#d62728", "blue", "green", "brown"]
+            max_y_val = 0
             for c in range(0, k):
                 # subplot_num += 1
                 ystdev = []
@@ -379,11 +380,23 @@ class Histogram(Frame):
                 c_label = "Cluster " + str(c)
                 self.ax.bar(y_pos + width * (c - (k / 2.3)), cen, width, align="center", log=self.lgvar,#alpha=0.75,
                             color=COLORS[c], ecolor="black", yerr=ystdev, label=c_label)
+                for i in range(0, len(cen)):
+                    y_val = cen[i] + ystdev[i]
+                    print("y_val:",str(y_val))
+                    if y_val > max_y_val:
+                        max_y_val = y_val
+                        print("new max_y_val:",str(max_y_val))
+
+
+                print("cen:",str(cen))
+                print("ysdtev:",str(ystdev))
+                print("ypos:",str(y_pos))
+
             self.ax.grid(True)
             # self.ax.set_xticklabels
             # self.ax.set_ylim(0, 1, emit=False)
-            max_y_val = max(map(max, tabl.centroids))
-            self.ax.set_ylim(0, max_y_val + 0.1, emit=False)
+            #max_y_val = max(map(max, tabl.centroids))
+            self.ax.set_ylim(0, max_y_val * 1.05, emit=False)
 
             self.ax.set_xticks(y_pos + width / 4)
             self.ax.set_xticklabels(cluster_params)
