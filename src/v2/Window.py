@@ -44,7 +44,7 @@ class VisAnaWindow(tk.Frame):
 
 
         ##MUSSWEG TODO
-        self.open_file("../../data/dust-32-grain-size-classes-2014.dat")
+        #self.open_file("../../data/dust-32-grain-size-classes-2014.dat")
         #self.open_file("../../data/dust-2014-v2.dat")
 
 
