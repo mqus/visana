@@ -221,15 +221,6 @@ class DataSource:
 
 
 
-    def filterforvalues(self,out_table, cols,method="OR", in_table="base"):
-        #TODO ?
-        real_cols=[]
-        #exclude Timestamps
-        for col in cols:
-            if not col == self.get_time_colname():
-                real_cols.append(col)
-
-
 
     #select with multiple ids
     def select_ids(self,out_table, ids, in_table="base"):
@@ -330,7 +321,7 @@ class DataSource:
 
         for p in params:
             df = df.loc[df[p].notnull()]
-
+        df = df.copy() # type:pd.DataFrame
 
         kmeans = cluster.KMeans(n_clusters=k, n_jobs=-1)
         kmeans.fit(df[params])

@@ -36,11 +36,7 @@ class Histogram(Frame):
         self.tlabel=Label(self.tframe, textvariable=self.tooltip, justify="left", anchor="nw", wraplength=200)
         self.tlabel.grid(column=0, row=0, sticky=(W, N))
 
-        #self.create_plot()
-
         self.select_rect=None
-        #MAYBE: retain plot view when switching regression on/off
-        #self.plotbox=(None,None,None,None)
 
         if self.ds is None:
             self.settings=Label(self,text="No data, please open a file via File -> Open")
@@ -51,50 +47,8 @@ class Histogram(Frame):
         self.settings.grid(column=0, row=0, sticky=(S,W,N,E))
         self.apply_settings()
 
-
-
-
-    # def create_plot(self):
-    #     self.fig = Figure(figsize=(5, 5), dpi=100) #type:Figure
-    #     self.ax = self.fig.add_subplot(111) #type:Axes
-    #     #self.ax2 = self.fig.add_subplot(212)
-    #
-    #     self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
-    #
-    #     #self.canvas.mpl_connect('motion_notify_event', self.handle_hover)
-    #     # self.canvas.mpl_connect('button_press_event', self.handle_mouse_down)
-    #     # self.canvas.mpl_connect('button_release_event', self.handle_mouse_up)
-    #     # #self.canvas.mpl_connect('pick_event', self.draw_tooltip)
-    #
-    #     self.canvas.get_tk_widget().grid(column=1, row=0, sticky=(N, E, W, S), rowspan=2)
-    #
-    #     # self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.canvas.get_tk_widget())
-    #     #self.ctbwidget=tk.Frame(self)
-    #     #self.ctbwidget.grid(column=1, row=4, sticky=(tk.N, tk.E, tk.W, tk.S))
-    #     #self.canvas_tb = NavigationToolbar2TkAgg(self.canvas, self.ctbwidget)
-    #
-    #     #self.ax.callbacks.connect('xlim_changed', self.handle_changed_axes)
-    #     #self.ax.callbacks.connect('ylim_changed', self.handle_changed_axes)
-    #
-    #     #util.zoom_factory(self.ax)
-
-
-    #### Handle Graph signals
-
     ###################
     # PLOT-EVENT HANDLER
-    def handle_changed_axes(self, ev=None):
- 
-        self.clean_tooltip()
-        xlim = self.ax.get_xlim()
-        ylim = self.ax.get_ylim()
-        self.xmin=xlim[0]
-        self.xmax=xlim[1]
-        self.ymin=ylim[0]
-        self.ymax=ylim[1]
-        text = "Focus changed to: x=[{:.1f};{:.1f}] and y=[{:.1f};{:.1f}]".format(xlim[0], xlim[1], ylim[0], ylim[1])
-
-        self.window.history.add(text)
 
     ## is called by the plot to confirm if the mouseevent was inside/on a plotted line or a marker
     def handle_pick(self, line, mouseevent):
@@ -173,8 +127,6 @@ class Histogram(Frame):
                                                         .format(xmin,ymin,xmax,ymax)
                         self.draw_tooltip(mouseevent, ind, True)
                         self.window.history.add(text)
-                        #TODO
-                        #self.trigger_update(level=self.TIMELINE_SELECTION)
                     else:
                         self.clean_tooltip(True)
                 else:
@@ -294,8 +246,9 @@ class Histogram(Frame):
             self.select_rect = None
             #if emit:
                 #self.action_str = None
-                #TODO
+                #TO-DO
                 #self.trigger_update(self.TIMELINE_SELECTION)
+
 
 
     #### Handle Signals from Outside
@@ -323,19 +276,12 @@ class Histogram(Frame):
             self.settings = HControls(self, newcols)
             self.settings.grid(column=0, row=0, sticky=(S, W, N, E))
 
-
+    # a cluster recalculation was processed, called by VisAnaWindow.redo_plots
     def cluster_changed(self, in_table):
-        #TODO what to do when graph not seen?
-        #TODO multiple Graphs
-        newcols=self.window.calc.get_all_columns(with_time=True, after_calc=True)
-        #self.settings.set_new_cols(newcols)
-
-        self.ds.link("ss_show", in_table)
+        self.ds.link("h_show", in_table)
 
         self.apply_settings()
 
-        #sync settings and redraw plot
-        #self.create_plot()
 
 
 
@@ -347,7 +293,7 @@ class Histogram(Frame):
 
         self.ax.clear()
         self.ax.grid(True)
-        tabl = self.ds.get_data("cluster")
+        tabl = self.ds.get_data("h_show")
         d = tabl.df()
         if tabl.centroids is not None:
 
@@ -439,10 +385,7 @@ class Histogram(Frame):
             self.ax.set_xticks(y_pos + width / 4)
             self.ax.set_xticklabels(cluster_params)
 
-            #        self.ax.callbacks.connect('xlim_changed', self.handle_view_change)
-            #        self.ax.callbacks.connect('ylim_changed', self.handle_view_change)
-
-            ## add legend
+           ## add legend
 #            self.ax.legend(loc="upper right", shadow=True)
 
         self.canvas = FigureCanvasTkAgg(self.fig, self) #type:FigureCanvasTkAgg
@@ -451,7 +394,7 @@ class Histogram(Frame):
 
 
 
-
+# Just a custom widget for the histogram sidebar.
 class HControls(LabelFrame):
     def __init__(self, parent, params):
         super(HControls, self).__init__(parent,text="Histogram-Options")
@@ -468,7 +411,7 @@ class HControls(LabelFrame):
                                          variable=self.lgvar)
         self.log_cb.grid(column=0, row=1, sticky=(W, N), columnspan=2)
 
-
+    # returns True if the setting for a logarithmic scale is enabled, else False
     def doLog(self):
         return self.lgvar.get() is not "0"
 

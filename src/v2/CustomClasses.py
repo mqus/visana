@@ -153,10 +153,3 @@ class CustomClasses(Frame):
         else:
             self.b_reset.config(state = NORMAL)
 
-
-    # def accept(self):
-    #     self.success = True
-    #     #TODO write to calc
-    #     self.window.history.add("Set Custom Classes to "+str(self.classesDict))
-    #     self.window.calc.cclasses_changed(self.classesDict)
-

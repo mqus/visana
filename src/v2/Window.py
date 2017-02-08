@@ -25,11 +25,11 @@ class VisAnaWindow(tk.Frame):
     def __init__(self, master,ds=None):
         super(VisAnaWindow, self).__init__( master)
         self.master=master
-        self.ds=ds#TODO
+        self.ds=ds
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
 
-        root.title("Visual Analyser - PROTOTYP")
+        root.title("Visual Analyser - PROTOTYPE")
 
         self.grid(column=0, row=0, sticky=(tk.N,tk.W,tk.E,tk.S))
         self.columnconfigure(0, weight=1)
@@ -43,7 +43,7 @@ class VisAnaWindow(tk.Frame):
         self.calc = Calculator(self)
 
 
-        ##MUSSWEG TODO
+        ## COULD BE USED TO OPEN A FILE ON STARTUP
         #self.open_file("../../data/dust-32-grain-size-classes-2014.dat")
         #self.open_file("../../data/dust-2014-v2.dat")
 
@@ -95,9 +95,10 @@ class VisAnaWindow(tk.Frame):
 #        self.select.grid(column=0, row=0, sticky=(tk.E, tk.W, tk.N), columnspan=2)
 
 
-        #simple Scatterplot
+        #add main Scatterplot
         self.scatter = SimpleScatter(self.graphs, self)
         self.graphs.add(self.scatter, text="ScatterPlot")
+        #MAYBE: enable creating/deleting an arbitrary number of Scatterplots by UI
 
         #add Histogram
         self.hist = Histogram(self.graphs, self)
@@ -107,10 +108,12 @@ class VisAnaWindow(tk.Frame):
         self.mscatter = MultiScatter(self.graphs, self)
         self.graphs.add(self.mscatter, text="Small Multiples - Scatterplot")
 
-        #add Cake plot
+        #add PieChart
         self.pie = Pie(self.graphs, self)
         self.graphs.add(self.pie, text="Pie-Chart")
 
+
+        #add StatusBar at the bottom of the Window
         self.status=StringVar(self)
         ttk.Label(self,textvariable=self.status, justify="left")\
             .grid(column=0, row=2, columnspan=2, sticky=(tk.E,tk.W,tk.S))
@@ -122,7 +125,7 @@ class VisAnaWindow(tk.Frame):
             if filename is None:
                 return
         self.ds = datasource.DataSource()
-        self.history.add("Opened file: {}".format(filename))
+        self.history.add("Opened file: {}".format(filename.name))
         self.ds.read_data(filename)
 
         self.calc.ds_changed()
@@ -144,8 +147,9 @@ class VisAnaWindow(tk.Frame):
 
         self.calc.recalc(ALL)
 
+    # a cluster recalculation was processed, called by DataTasks.recalc
     def redo_plots(self):
-        #TODO
+        #MAYBE: don't redraw all plots, just the one which is currently enabled
         self.timeline.create_timeline()
         self.scatter.cluster_changed("cluster")
         self.hist.cluster_changed("cluster")

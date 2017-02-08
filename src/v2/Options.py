@@ -45,7 +45,6 @@ class Options(tk.Frame):
         self.k_spin = tk.Spinbox(self, from_=1, to=self.cluster_limit, textvariable=self.k ,width=4)
         self.k_spin.grid(column=1, row=3, sticky=(W, N))
 
-        #TODO: Clusterparams
         frm = tk.LabelFrame(self, text="4. Select features to cluster with")
         frm.grid(column=0, row=4, sticky=(W, N,E), columnspan=2)
         frm.columnconfigure(0, weight=1)
@@ -98,4 +97,5 @@ class Options(tk.Frame):
 
 
 class ScrollableOptions(tk.Canvas):
-    pass#TODO
+    pass
+    #TODO?

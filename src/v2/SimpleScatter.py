@@ -324,6 +324,7 @@ class SimpleScatter(Frame):
 
         self.apply_settings()
 
+    # a cluster recalculation was processed, called by VisAnaWindow.redo_plots
     def apply_settings(self, ev=None):
         if self.settings.do_white_on_black():
             self.bgcol="black"
@@ -343,8 +344,6 @@ class SimpleScatter(Frame):
         self.window.status.set("Redraw Plot...")
         self.draw_plot()
         self.window.status.set("")
-
-
 
     # the underlying data changed, called by VisAnaWindow.openFile
     def ds_changed(self):
