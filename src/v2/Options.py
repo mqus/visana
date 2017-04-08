@@ -88,6 +88,7 @@ class Options(tk.Frame):
         selected = self.clusterparams.curselection()
         if len(selected) is 0:
             return None
+        print(" - -" + str([self.clusterparams.get(i) for i in selected]))
         return [self.clusterparams.get(i) for i in selected]
 
     def ds_changed(self):
