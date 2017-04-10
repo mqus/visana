@@ -71,7 +71,7 @@ class Options(tk.Frame):
 
 
     def classes_changed(self):
-        self.cluvar.set(list(self.window.calc.get_all_columns()))
+        self.cluvar.set(tuple(self.window.calc.get_all_columns()))
 
     def handle_refresh_btn(self):
         self.window.calc.recalc(AGGREGATOR)
