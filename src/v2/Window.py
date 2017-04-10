@@ -125,7 +125,7 @@ class VisAnaWindow(tk.Frame):
             if filename is None:
                 return
         self.ds = datasource.DataSource()
-        self.history.add("Opened file: {}".format(filename.name))
+        self.history.add("Opening file: {}".format(filename.name))
         self.ds.read_data(filename)
 
         self.calc.ds_changed()
@@ -144,6 +144,7 @@ class VisAnaWindow(tk.Frame):
         self.select.destroy()
         self.select= Selector(self.sidepane_r, self.ds, self.apply_select)
         self.sidepane_r.add(self.select, text="tidy up data")
+        self.history.add("File opened. Drawing intial Graphs...")
 
         self.calc.recalc(ALL)
 

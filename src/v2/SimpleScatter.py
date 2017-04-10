@@ -428,7 +428,7 @@ class SimpleScatter(Frame):
                                   picker=self.handle_pick)
 
         if self.should_connect:
-            print("HAI", type(x_all), type(y_all))
+            #print("HAI", type(x_all), type(y_all))
 
             self.ax.plot(x=list(x_all),y=list(y_all), alpha=1, linewidth=5)#, color=self.fgcol, linewidth=5, ls="solid")
 
