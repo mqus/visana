@@ -163,7 +163,7 @@ class VisAnaWindow(tk.Frame):
 
         self.calc.recalc(SELECTOR)
 
-
+print("VisAna v0.4.10")
 root = tk.Tk()
 
 app = VisAnaWindow(master=root)
