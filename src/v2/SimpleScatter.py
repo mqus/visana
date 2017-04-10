@@ -111,6 +111,8 @@ class SimpleScatter(Frame):
     ## if no mousebutton is pressed and no points were selected, a hover-tooltip is shown.
     ## if the left button is pressed, (re-)draw the selection indicator
     def handle_hover(self, mouseevent):
+        if self.ds is None:
+            return;
         if not mouseevent.button in [1, 3] and self.select_rect is None:
             isover, props = self.handle_mouse_event(mouseevent)
 
@@ -196,6 +198,9 @@ class SimpleScatter(Frame):
         which are the data points that were picked
         """
         self.clean_tooltip()
+
+        if self.ds is None:
+            return False, dict()
 
         # print("PICKER")
         # print(mouseevent, vars(mouseevent))
